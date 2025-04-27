@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
 from django.contrib import auth
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 
-# Create your views here.
+# Pegamos o modelo de usuário correto (CustomUser)
+CustomUser = get_user_model()
 
-def home_view (request):
+def home_view(request):
     return render(request, 'base.html')
 
 def cadastro(request):
@@ -15,10 +17,10 @@ def cadastro(request):
         password2 = request.POST['password2']
 
         if password == password2:
-            if User.objects.filter(username=username).exists():
+            if CustomUser.objects.filter(username=username).exists():
                 return render(request, 'register.html', {'erro': 'Usuário já existe'})
             else:
-                user = User.objects.create_user(username=username, email=email, password=password)
+                user = CustomUser.objects.create_user(username=username, email=email, password=password)
                 user.save()
                 return redirect('login')
         else:
@@ -35,10 +37,9 @@ def login_view(request):
 
         if user is not None:
             auth.login(request, user)
-            return redirect('/')  # Redireciona para a página inicial
+            return redirect('/')
         else:
             return render(request, 'login.html', {'erro': 'Usuário ou senha inválidos'})
-
     else:
         return render(request, 'login.html')
 
