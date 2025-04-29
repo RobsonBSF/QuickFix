@@ -17,13 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from app_QuickFix import views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.home_view, name='home'),
-    path('cadastro/', views.cadastro, name='cadastro'),
-    path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
+    path('', include('app_QuickFix.urls')),  # << Aqui você inclui as urls do app
+    # Recuperação de senha
+    path('esqueci-a-senha/', auth_views.PasswordResetView.as_view(template_name='forgot_password.html'), name='password_reset'),
+    path('esqueci-a-senha-enviado/', auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'), name='password_reset_done'),
+    path('resetar-senha/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'), name='password_reset_confirm'),
+    path('resetar-senha-completo/', auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'), name='password_reset_complete')
 ]
-
-

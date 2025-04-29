@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.auth', # Necessário para autenticação
     'app_QuickFix',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -129,9 +130,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'app_QuickFix.CustomUser'
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'desesperoprojetodespair@gmail.com'  # <-- coloque seu email aqui
+EMAIL_HOST_PASSWORD = 'ijqy qtcs kmsk huot'  # <-- coloque a senha gerada lá
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Sao_Paulo'
 
 # Redirecionamento após login e logoSut
 LOGIN_REDIRECT_URL = '/' # Para onde ir após o login bem-sucedido
 LOGOUT_REDIRECT_URL = '/' # Para onde ir após o logout
-
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

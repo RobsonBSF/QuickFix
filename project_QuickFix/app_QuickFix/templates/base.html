@@ -165,7 +165,9 @@
     <!-- Menu Lateral -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-percentage me-2"></i> Central Preços</h5>
+            <a href="{% url 'home' %}" class="d-flex align-items-center">
+                <img src="{% static 'img/logon.png' %}" alt="Logo" style="height: 40px;">
+            </a>
             <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle">
                 <i class="fas fa-times"></i>
             </button>
@@ -213,9 +215,9 @@
                 <img src="https://via.placeholder.com/40" alt="User" class="rounded-circle me-2">
                 <div>
                     <small class="d-block">Logado como</small>
-                    <strong>email@email.com</strong>
+                    <strong>{{ user.email }}</strong> 
                 </div>
-                <a href="#" class="ms-auto text-dark"><i class="fas fa-sign-out-alt"></i></a>
+                <a href="{% url 'logout' %}" class="ms-auto text-dark"><i class="fas fa-sign-out-alt"></i></a> <!-- Botão sair -->
             </div>
         </div>
     </div>
@@ -234,13 +236,25 @@
                     <div class="dropdown">
                         <button class="btn btn-light dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown">
                             <img src="https://via.placeholder.com/30" alt="User" class="me-2">
-                            <span>email@email.com</span>
+                               <span>{{ user.email }}</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Perfil</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Configurações</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <i class="fas fa-user me-2 text-primary"></i> Perfil
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <i class="fas fa-cog me-2 text-warning"></i> Configurações
+                                </a>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i> Sair</a></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Sair
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -255,7 +269,7 @@
                 <div class="input-group mb-3 w-75 mx-auto">
                     <input type="text" class="form-control finder" placeholder="Nos diga o que deseja...">
                     <button class="btn btn-primary" type="button">
-                        <i class="fas fa-search"></i> Buscar
+                    <i class="fas fa-search"></i> Buscar
                     </button>
                 </div>
                 <div class="dots-indicator mb-3">
@@ -276,12 +290,12 @@
                         <div class="card h-100">
                             <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Pepperoni Pizza">
                             <div class="card-body">
-                                <h5 class="card-title">Pepperoni Pizza</h5>
+                                <h5 class="card-title">P</h5>
                                 <p class="card-text">
-                                    <span class="old-price">$24.99</span>
+                                    <span class="old-price"></span>
                                     <span class="product-price ms-2">$19.99</span>
                                 </p>
-                                <a href="#" class="btn btn-outline-primary w-100">Consultar Shop</a>
+                                <a href="#" class="btn btn-outline-primary w-100">Consultar Serviço</a>
                             </div>
                         </div>
                     </div>
@@ -294,7 +308,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h3><i class="fas fa-chart-line text-primary me-2"></i> Os mais procurados</h3>
-                        <h4 class="text-muted fs-5">Sugestões de Produtos</h4>
+                        <h4 class="text-muted fs-5">Sugestões de Serviços</h4>
                     </div>
                     <a href="#" class="btn btn-sm btn-outline-primary">Ver todos</a>
                 </div>
