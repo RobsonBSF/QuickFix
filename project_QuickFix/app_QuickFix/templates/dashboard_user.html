@@ -1,0 +1,112 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - QuickFix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .card-indicator {
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            transition: 0.3s;
+        }
+        .card-indicator:hover {
+            transform: translateY(-5px);
+        }
+        .icon-box {
+            font-size: 1.5rem;
+            background: #f0f2f5;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    <h2 class="mb-4">Painel de Controle</h2>
+
+    <!-- Indicadores de Atividades -->
+    <div class="row mb-5">
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-bell text-primary"></i></div>
+                    <div>
+                        <small>Novas Requisições</small>
+                        <h4>{{ nova_requisicoes }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-file-signature text-warning"></i></div>
+                    <div>
+                        <small>Propostas</small>
+                        <h4>{{ novas_propostas }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-envelope text-success"></i></div>
+                    <div>
+                        <small>Mensagens</small>
+                        <h4>{{ mensagens }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-credit-card text-danger"></i></div>
+                    <div>
+                        <small>Pagamentos Pendentes</small>
+                        <h4>{{ pagamentos_pendentes }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores de Desempenho -->
+    <h5 class="mb-3">Desempenho como Prestador</h5>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card card-indicator p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small>Taxa de Aceitação</small>
+                        <h4>{{ taxa_aceitacao }}%</h4>
+                    </div>
+                    <i class="fas fa-check-circle text-success fs-3"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-indicator p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small>Nota Média</small>
+                        <h4>{{ nota_media }} ★</h4>
+                    </div>
+                    <i class="fas fa-star text-warning fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

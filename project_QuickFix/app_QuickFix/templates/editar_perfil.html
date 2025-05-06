@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>QuickFix | Editar Perfil</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .sidebar {
+      width: 250px;
+      position: fixed;
+      height: 100vh;
+      background-color: #fff;
+      border-right: 1px solid #dee2e6;
+      padding: 20px 15px;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 10px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    .sidebar a i {
+      margin-right: 10px;
+    }
+
+    .sidebar a.active, .sidebar a:hover {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+
+    .main-content {
+      margin-left: 270px;
+      padding: 30px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .profile-form {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .profile-pic {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      margin: 0 auto 20px;
+    }
+
+    .profile-pic img {
+      width: 130px;
+      height: 130px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #dee2e6;
+    }
+
+    .camera-icon {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: #2e2f69;
+      color: white;
+      border-radius: 50%;
+      padding: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .form-label {
+      font-weight: 500;
+    }
+
+    .btn-save {
+      background-color: #2e2f69;
+      color: white;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .btn-save:hover {
+      background-color: #1f2147;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h4 class="mb-4">QuickFix</h4>
+  <a href="#"><i class="fas fa-chart-line"></i> Reports</a>
+  <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
+  <a href="#"><i class="fas fa-user-friends"></i> Amigos</a>
+  <a href="{% url 'meus_servicos' %}"><i class="fas fa-list"></i> Lista de Serviços</a>
+  <a href="{% url 'cadastro_de_servico' %}"><i class="fas fa-plus"></i> Novo Anúncio</a>
+  <a href="{% url 'perfil' %}" class="active"><i class="fas fa-user-cog"></i> Editar Perfil</a>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="main-content">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <h2 class="mb-0">Editar Perfil</h2>
+    <div class="dropdown">
+      <button class="btn btn-outline-dark dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+        {% if user.profile_image and user.profile_image.name %}
+          <img src="{{ user.profile_image.url }}" alt="Foto de Perfil" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+        {% else %}
+          <img src="https://via.placeholder.com/130" alt="Foto de Perfil" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+        {% endif %}
+        <div class="text-start d-none d-md-block">
+          <div class="fw-semibold">{{ user.username|default:user.email }}</div>
+          <small class="text-muted">{{ user.email }}</small>
+        </div>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'perfil' %}"><i class="fas fa-user-circle text-primary"></i> Perfil</a></li>
+        <li><a class="dropdown-item d-flex align-items-center gap-2" href="#"><i class="fas fa-cogs text-secondary"></i> Configurações</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger d-flex align-items-center gap-2" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FORMULÁRIO -->
+  <div class="profile-form">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- FOTO -->
+      <div class="profile-pic text-center">
+        <img id="profilePreview" src="{{ user.profile_image.url|default:'https://via.placeholder.com/130' }}" alt="Foto de Perfil">
+        <label for="id_profile_image" class="camera-icon">
+          <i class="fas fa-camera"></i>
+        </label>
+      </div>
+      {{ form.non_field_errors }}
+
+      <!-- CAMPOS -->
+      <div class="mb-3">
+        <label for="id_username" class="form-label">Nome de usuário</label>
+        {{ form.username|add_class:"form-control" }}
+      </div>
+
+      <div class="mb-3">
+        <label for="id_email" class="form-label">Email</label>
+        {{ form.email|add_class:"form-control" }}
+      </div>
+
+      <div class="mb-3">
+        <label for="id_cidade" class="form-label">Cidade</label>
+        {{ form.cidade|add_class:"form-control" }}
+      </div>
+
+      <div class="mb-4">
+        <label for="id_estado" class="form-label">Estado</label>
+        {{ form.estado|add_class:"form-control" }}
+      </div>
+
+      {{ form.profile_image }} <!-- campo hidden para upload -->
+
+      <!-- BOTÃO -->
+      <button type="submit" class="btn btn-save w-100">Salvar Alterações</button>
+    </form>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script>
+  const input = document.getElementById('id_profile_image');
+  const preview = document.getElementById('profilePreview');
+
+  if (input) {
+    input.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.setAttribute('src', e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,363 +1,320 @@
 {% load static %}
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
-    <title>HomePage</title>
-     <!-- Bootstrap CSS -->
-     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-     <!-- Font Awesome para ícones -->
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-     <link rel="stylesheet" href="{% static 'css/base.css' %}">
- 
-</head>
-<body>
+    <title>{% block title %}QuickFix{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
     <style>
-        /* Estilo do menu lateral */
-        .sidebar {
-            width: 280px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
+        :root {
+            --background: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+          }
+        
+          .dark-mode {
+            --background: #181a1b;
+            --text-color: #f8f9fa;
+            --card-bg: #242526;
+          }
+        
+          body {
+            background-color: var(--background);
+            color: var(--text-color);
+          }
+        
+          .sidebar, .card-service, .card-settings {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+          }
+        
+          .sidebar a {
+            color: var(--text-color);
+          }
+        
+          footer {
+            color: var(--text-color);
+          }
+        body {
             background-color: #f8f9fa;
-            border-right: 1px solid #dee2e6;
-            transition: all 0.3s;
-            z-index: 1000;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            font-family: 'Segoe UI', sans-serif;
         }
-
-        .main-content {
-            margin-left: 280px;
-            width: calc(100% - 280px);
-            transition: all 0.3s;
-        }
-
-        .sidebar-header {
-            background-color: #e9ecef;
-            border-bottom: 1px solid #dee2e6;
-            padding: 15px;
-        }
-
-        .components li a {
-            color: #495057;
-            text-decoration: none;
-            transition: all 0.3s;
-            padding: 10px 15px;
-            display: block;
-            border-radius: 5px;
-            margin: 5px 10px;
-        }
-
-        .components li a:hover {
-            color: #0d6efd;
-            background-color: rgba(13, 110, 253, 0.1);
-        }
-
-        .components li.active a {
-            background-color: #0d6efd;
-            color: white;
-        }
-
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            background-color: #e9ecef;
-            border-top: 1px solid #dee2e6;
-            padding: 15px;
-        }
-
-        /* Estilo para o botão de menu mobile */
-        #mobileMenuToggle {
-            display: none;
+        .sidebar {
+            width: 250px;
             position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1050;
+            height: 100vh;
+            background-color: #fff;
+            border-right: 1px solid #dee2e6;
+            padding: 20px 15px;
         }
-
-        /* Navbar superior */
-        .top-navbar {
-            background-color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 10px 20px;
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
         }
-
-        .user-dropdown img {
-            width: 30px;
-            height: 30px;
+        .sidebar a i {
+            margin-right: 10px;
+        }
+        .sidebar a.active, .sidebar a:hover {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        .main-content {
+            margin-left: 270px;
+            padding: 30px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-info img {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            margin-right: 8px;
+            object-fit: cover;
+            border: 2px solid #dee2e6;
         }
-
-        @media (max-width: 992px) {
-            .sidebar {
-                left: -280px;
-            }
-            
-            .sidebar.active {
-                left: 0;
-            }
-            
-            .main-content {
-                margin-left: 0;
-                width: 100%;
-            }
-            
-            #mobileMenuToggle {
-                display: block;
-            }
+        .search-bar {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
         }
-
-        /* Estilo adicional para os cards */
-        .card {
-            transition: transform 0.2s;
+        .search-bar input {
+            border-radius: 30px;
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            flex: 1;
+        }
+        .search-bar button {
+            margin-left: 10px;
+            border-radius: 30px;
+        }
+        .section-title {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+            padding-left: 10px;
+            font-weight: 600;
+        }
+        .card-service {
             border: none;
+            border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-radius: 10px;
-            overflow: hidden;
+            transition: transform 0.2s;
         }
-
-        .card:hover {
+        .card-service:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-
-        .finder {
-            border-radius: 20px;
-            padding: 10px 20px;
-            border: 1px solid #ced4da;
-            width: 100%;
-        }
-
-        .finder:focus {
-            outline: none;
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-
-        .product-price {
+        .card-service .price {
             font-weight: bold;
-            color: #28a745;
+            color: #e67e22;
         }
-
-        .old-price {
+        .card-service .old-price {
             text-decoration: line-through;
-            color: #dc3545;
+            color: #bbb;
+            font-size: 0.9em;
         }
-
-        .dots-indicator i {
-            font-size: 10px;
-            margin: 0 3px;
-            color: #6c757d;
-        }
-
-        .dots-indicator i.active {
-            color: #0d6efd;
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
         }
     </style>
+    <script>
+        (function() {
+          try {
+            if (localStorage.getItem('theme') === 'dark') {
+              document.body?.classList?.add('dark-mode');
+            }
+          } catch (e) {}
+        })();
+      </script>
+    
+      {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Menu Lateral -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header d-flex justify-content-between align-items-center">
-            <a href="{% url 'home' %}" class="d-flex align-items-center">
-                <img src="{% static 'img/logon.png' %}" alt="Logo" style="height: 40px;">
+
+      
+    <div class="sidebar">
+        <h4 class="mb-4">QuickFix</h4>
+        <a href="#" class="active"><i class="fas fa-chart-line"></i> Reports</a>
+        <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
+        <a href="#"><i class="fas fa-user-friends"></i> Amigos</a>
+        <a href="{% url 'meus_servicos' %}"><i class="fas fa-list"></i> Lista de Serviços</a>
+        <a href="{% url 'cadastro_de_servico' %}"><i class="fas fa-plus"></i> Novo Anúncio</a>
+        <a href="{% url 'configuracoes'  %}"><i class="fas fa-cog"></i> Configurações</a>
+    </div>
+
+    <div class="main-content">
+        {% block content %}
+    <div class="topbar d-flex justify-content-between align-items-center mb-4">
+
+        <!-- Seção do título e botão de novo anúncio -->
+        <div class="d-flex align-items-center">
+            <h2 class="me-3 mb-0">Cadastre um novo anúncio</h2>
+            <a href="{% url 'cadastro_de_servico' %}" class="btn btn-primary rounded-circle">
+                <i class="fas fa-plus"></i>
             </a>
-            <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle">
-                <i class="fas fa-times"></i>
+        </div>
+
+        <!-- Perfil do usuário com dropdown -->
+        <div class="dropdown">
+            <button class="btn btn-outline-dark dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="position-relative">
+                {% if user.profile_image and user.profile_image.name %}
+                  <img src="{{ user.profile_image.url }}" alt="Foto de Perfil" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                {% else %}
+                  <img src="https://via.placeholder.com/130" alt="Foto de Perfil" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                {% endif %}
+              </div>
+              <div class="text-start d-none d-md-block">
+                <div class="fw-semibold">{{ user.username|default:user.email }}</div>
+                <small class="text-muted">{{ user.email }}</small>
+              </div>
             </button>
-        </div>
-        <ul class="list-unstyled components mt-3">
-            <li class="active">
-                <a href="#" class="d-flex align-items-center">
-                    <i class="fas fa-home me-3"></i>
-                    <span>Início</span>
+          
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li>
+                <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'perfil' %}">
+                  <i class="fas fa-user-circle text-primary"></i> Perfil
                 </a>
-            </li>
-            <li>
-                <a href="#" class="d-flex align-items-center">
-                    <i class="fas fa-chart-bar me-3"></i>
-                    <span>Relatórios</span>
+              </li>
+              <li>
+                <a class="dropdown-item d-flex align-items-center gap-2" href="#">
+                  <i class="fas fa-cogs text-secondary"></i> Configurações
                 </a>
-            </li>
-            <li>
-                <a href="#" class="d-flex align-items-center">
-                    <i class="fas fa-heart me-3"></i>
-                    <span>Favoritos</span>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item text-danger d-flex align-items-center gap-2" href="{% url 'logout' %}">
+                  <i class="fas fa-sign-out-alt"></i> Sair
                 </a>
-            </li>
-            <li>
-                <a href="#" class="d-flex align-items-center">
-                    <i class="fas fa-list me-3"></i>
-                    <span>Lista</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="d-flex align-items-center">
-                    <i class="fas fa-info-circle me-3"></i>
-                    <span>Sobre</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="d-flex align-items-center">
-                    <i class="fas fa-cog me-3"></i>
-                    <span>Configurações</span>
-                </a>
-            </li>
-        </ul>
-        <div class="sidebar-footer">
-            <div class="d-flex align-items-center">
-                <img src="https://via.placeholder.com/40" alt="User" class="rounded-circle me-2">
-                <div>
-                    <small class="d-block">Logado como</small>
-                    <strong>{{ user.email }}</strong> 
-                </div>
-                <a href="{% url 'logout' %}" class="ms-auto text-dark"><i class="fas fa-sign-out-alt"></i></a> <!-- Botão sair -->
-            </div>
-        </div>
+              </li>
+            </ul>
+          </div>
     </div>
 
-    <!-- Conteúdo Principal -->
-    <div class="main-content" id="mainContent">
-        <!-- Botão para abrir menu (visível apenas em mobile) -->
-        <button class="btn btn-primary" id="mobileMenuToggle">
-            <i class="fas fa-bars"></i>
-        </button>
 
-        <!-- Barra de Navegação Superior -->
-        <nav class="navbar navbar-expand-lg top-navbar">
-            <div class="container-fluid">
-                <div class="d-flex align-items-center ms-auto">
-                    <div class="dropdown">
-                        <button class="btn btn-light dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                            <img src="https://via.placeholder.com/30" alt="User" class="me-2">
-                               <span>{{ user.email }}</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <i class="fas fa-user me-2 text-primary"></i> Perfil
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <i class="fas fa-cog me-2 text-warning"></i> Configurações
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center text-danger" href="{% url 'logout' %}">
-                                    <i class="fas fa-sign-out-alt me-2"></i> Sair
-                                </a>
-                            </li>
-                        </ul>
+        <div class="search-bar">
+            <input type="text" placeholder="Nos diga o que deseja">
+            <button class="btn btn-dark"><i class="fas fa-search"></i></button>
+        </div>
+
+        <h4 class="section-title">Serviços mais Pedidos</h4>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card card-service">
+                    <img src="https://via.placeholder.com/400x200" class="card-img-top">
+                    <div class="card-body">
+                        <h5 class="card-title">Exemple</h5>
+                        <p class="card-text">
+                            <span class="price">R$19,99</span> <span class="old-price">R$24,99</span>
+                        </p>
+                        <a href="#" class="btn btn-warning w-100">Consultar Serviço</a>
                     </div>
                 </div>
             </div>
-        </nav>
-
-        <!-- Conteúdo da Página -->
-        <div class="container-fluid p-4">
-            <!-- Seção de Busca -->
-            <section class="text-center mb-5">
-                <h2 class="mb-4">"Encontre o que procura com o menor preço e a maior qualidade"</h2>
-                <div class="input-group mb-3 w-75 mx-auto">
-                    <input type="text" class="form-control finder" placeholder="Nos diga o que deseja...">
-                    <button class="btn btn-primary" type="button">
-                    <i class="fas fa-search"></i> Buscar
-                    </button>
-                </div>
-                <div class="dots-indicator mb-3">
-                    <i class="fas fa-circle active"></i>
-                    <i class="fas fa-circle"></i>
-                    <i class="fas fa-circle"></i>
-                </div>
-            </section>
-
-            <!-- Seção de Promoções -->
-            <section class="mb-5">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3><i class="fas fa-fire text-danger me-2"></i> Promoções</h3>
-                    <a href="#" class="btn btn-sm btn-outline-primary">Ver todas</a>
-                </div>
-                <div class="row">
-                    <div class="col-md-3 mb-4">
-                        <div class="card h-100">
-                            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Pepperoni Pizza">
-                            <div class="card-body">
-                                <h5 class="card-title">P</h5>
-                                <p class="card-text">
-                                    <span class="old-price"></span>
-                                    <span class="product-price ms-2">$19.99</span>
-                                </p>
-                                <a href="#" class="btn btn-outline-primary w-100">Consultar Serviço</a>
-                            </div>
-                        </div>
+            <div class="col-md-4">
+                <div class="card card-service">
+                    <img src="https://via.placeholder.com/400x200" class="card-img-top">
+                    <div class="card-body">
+                        <h5 class="card-title">Exemple</h5>
+                        <p class="card-text">
+                            <span class="price">R$35,99</span> <span class="old-price">R$44,99</span>
+                        </p>
+                        <a href="#" class="btn btn-warning w-100">Consultar Serviço</a>
                     </div>
-                    <!-- Outros cards de promoção... -->
                 </div>
-            </section>
-
-            <!-- Seção Mais Procurados -->
-            <section>
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h3><i class="fas fa-chart-line text-primary me-2"></i> Os mais procurados</h3>
-                        <h4 class="text-muted fs-5">Sugestões de Serviços</h4>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-service">
+                    <img src="https://via.placeholder.com/400x200" class="card-img-top">
+                    <div class="card-body">
+                        <h5 class="card-title">Exemple</h5>
+                        <p class="card-text">
+                            <span class="price">R$17,99</span> <span class="old-price">R$20,99</span>
+                        </p>
+                        <a href="#" class="btn btn-warning w-100">Consultar Serviço</a>
                     </div>
-                    <a href="#" class="btn btn-sm btn-outline-primary">Ver todos</a>
                 </div>
-                <div class="row">
-                    <!-- Cards de produtos mais procurados... -->
-                </div>
-            </section>
+            </div>
         </div>
-    </div>
 
-    <!-- Bootstrap JS e Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <h4 class="section-title">Os mais procurados</h4>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card card-service">
+                    <img src="https://via.placeholder.com/400x200" class="card-img-top">
+                    <div class="card-body">
+                        <h5 class="card-title">Exemple</h5>
+                        <p class="card-text">
+                            <span class="price">R$19,99</span> <span class="old-price">R$24,99</span>
+                        </p>
+                        <a href="#" class="btn btn-warning w-100">Consultar Serviço</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card card-service">
+                    <img src="https://via.placeholder.com/400x200" class="card-img-top">
+                    <div class="card-body">
+                        <h5 class="card-title">Exemple</h5>
+                        <p class="card-text">
+                            <span class="price">R$18,99</span> <span class="old-price">R$23,99</span>
+                        </p>
+                        <a href="#" class="btn btn-warning w-100">Consultar Serviço</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-5">
+            <p>&copy; 2025 QuickFix. Todos os direitos reservados.</p>
+        </footer>
+        {% endblock %}
+    </div>  
+     <!-- Bootstrap Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Script para o menu lateral -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            
-            // Alternar menu lateral
-            function toggleSidebar() {
-                sidebar.classList.toggle('active');
-                mainContent.classList.toggle('active');
-            }
-            
-            // Verificar tamanho da tela ao carregar
-            function checkScreenSize() {
-                if (window.innerWidth <= 992) {
-                    sidebar.classList.add('active');
-                    mainContent.classList.add('active');
-                } else {
-                    sidebar.classList.remove('active');
-                    mainContent.classList.remove('active');
-                }
-            }
-            
-            // Executar ao carregar
-            checkScreenSize();
-            
-            // Event listeners
-            sidebarToggle.addEventListener('click', toggleSidebar);
-            mobileMenuToggle.addEventListener('click', toggleSidebar);
-            
-            // Atualizar ao redimensionar
-            window.addEventListener('resize', checkScreenSize);
-        });
-    </script>
+     <!-- Tema switch -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const switchInput = document.getElementById('themeSwitch');
+      if (switchInput) {
+        switchInput.checked = localStorage.getItem('theme') === 'dark';
 
+        switchInput.addEventListener('change', function () {
+          if (this.checked) {
+            document.documentElement.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+          }
+        });
+      }
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
 </body>
 </html>

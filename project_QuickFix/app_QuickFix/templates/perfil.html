@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>QuickFix | Editar Perfil</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .sidebar {
+      width: 250px;
+      position: fixed;
+      height: 100vh;
+      background-color: #fff;
+      border-right: 1px solid #dee2e6;
+      padding: 20px 15px;
+    }
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 10px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    .sidebar a i {
+      margin-right: 10px;
+    }
+    .sidebar a.active, .sidebar a:hover {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    .main-content {
+      margin-left: 270px;
+      padding: 30px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .profile-container {
+      max-width: 600px;
+      background: #fff;
+      margin: auto;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .profile-pic {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 25px;
+    }
+    .profile-pic img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #dee2e6;
+    }
+    .camera-icon {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background-color: #2e2f69;
+      color: white;
+      border-radius: 50%;
+      padding: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 2px solid white;
+    }
+    .btn-save {
+      background-color: #2e2f69;
+      color: white;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 500;
+      font-size: 1rem;
+    }
+    .btn-save:hover {
+      background-color: #1f2147;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <a href="{% url 'home' %}">
+      <h4 class="mb-4">QuickFix</h4></a>
+    <a href="#"><i class="fas fa-chart-line"></i> Reports</a>
+    <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
+    <a href="#"><i class="fas fa-user-friends"></i> Amigos</a>
+    <a href="{% url 'meus_servicos' %}"><i class="fas fa-list"></i> Lista de Serviços</a>
+    <a href="{% url 'cadastro_de_servico' %}"><i class="fas fa-plus"></i> Novo Anúncio</a>
+    <a href="{% url 'perfil' %}" class="active"><i class="fas fa-user-cog"></i> Editar Perfil</a>
+  </div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h2 class="mb-0">Editar Perfil</h2>
+    </div>
+
+    <div class="profile-container">
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="profile-pic text-center">
+          {% if user.profile_image and user.profile_image.name %}
+            <img src="{{ user.profile_image.url }}" alt="Foto de Perfil" id="profilePreview">
+          {% else %}
+            <img src="https://via.placeholder.com/130" alt="Foto de Perfil" id="profilePreview">
+          {% endif %}
+          <label for="profileImage" class="camera-icon">
+            <i class="fas fa-camera"></i>
+          </label>
+          <input type="file" name="profile_image" id="profileImage" accept="image/*" style="display: none;">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Cidade</label>
+          <input type="text" name="cidade" class="form-control" value="{{ user.cidade }}">
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Estado</label>
+          <input type="text" name="estado" class="form-control" value="{{ user.estado }}">
+        </div>
+
+        <button type="submit" class="btn btn-save w-100">Salvar Alterações</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+  <script>
+    const input = document.getElementById('profileImage');
+    const preview = document.getElementById('profilePreview');
+
+    if (input) {
+      input.addEventListener('change', function () {
+        const file = this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.setAttribute('src', e.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
