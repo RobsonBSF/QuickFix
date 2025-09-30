@@ -102,7 +102,7 @@ python manage.py runserver
 
 * Raphael
 * Robson Barbosa
-* Rock José Pilho
+* Roque José Filho
 
 ---
 
