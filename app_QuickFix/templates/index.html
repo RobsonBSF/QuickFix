@@ -1,0 +1,141 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuickFix - Plataforma de Serviços</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+  
+  <style>
+    :root {
+      --background: #f8f9fa;
+      --text-color: #212529;
+      --card-bg: #ffffff;
+    }
+
+    .dark-mode {
+      --background: #181a1b;
+      --text-color: #f8f9fa;
+      --card-bg: #242526;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text-color);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .hero {
+      padding: 80px 0;
+      background: linear-gradient(to right, #ffc107, #ffdd57);
+      text-align: center;
+      color: #212529;
+    }
+
+    .hero h1 {
+      font-weight: bold;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+    }
+
+    .btn-primary {
+      background-color: #212529;
+      border: none;
+    }
+
+    .card-service {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+      background-color: var(--card-bg);
+      color: var(--text-color);
+    }
+
+    .card-service:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .card-service img {
+    width: 100%;
+    height: 200px; /* ou outro valor fixo adequado */
+    object-fit: cover;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    }
+
+    .price {
+      color: #e67e22;
+      font-weight: bold;
+    }
+
+    footer {
+      background-color: var(--card-bg);
+      border-top: 1px solid #dee2e6;
+      padding: 30px 0 10px;
+      font-size: 0.9rem;
+      color: var(--text-color);
+    }
+
+    footer .footer-links a {
+      color: var(--text-color);
+      text-decoration: none;
+      margin: 0 10px;
+    }
+
+    footer .footer-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- Hero section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Bem-vindo ao QuickFi</h1>
+      <p>Encontre profissionais para serviços do dia a dia com facilidade e segurança.</p>
+      <a href="{% url 'home' %}" class="btn btn-dark btn-lg mt-3">Area de usuario</a>
+    </div>
+  </section>
+
+  <!-- Serviços em destaque -->
+  <section class="py-5">
+    <div class="container">
+      <h3 class="mb-4 text-center">Serviços Populares</h3>
+      {% block servicos %}
+        {% include "partials/service_card.html" with servicos=servicos %}
+      {% endblock %}
+    </div>
+  </section>
+
+  <footer>
+  <div class="container text-center">
+    <div class="footer-links mb-2">
+      <a href="#">Sobre</a> |
+      <a href="#">Contato</a> |
+      <a href="#">Política de Privacidade</a> |
+      <a href="#">Termos de Uso</a>
+    </div>
+    <p>&copy; 2025 QuickFix. Todos os direitos reservados.</p>
+  </div>
+</footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

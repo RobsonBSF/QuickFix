@@ -1,0 +1,38 @@
+/* static/css/theme.css */
+
+:root {
+    --background: #f8f9fa;
+    --text-color: #212529;
+    --card-bg: #fff;
+  }
+  
+  body.dark-mode {
+    --background: #181a1b;
+    --text-color: #f8f9fa;
+    --card-bg: #242526;
+  }
+  
+  body {
+    background-color: var(--background);
+    color: var(--text-color);
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .sidebar {
+    background-color: var(--card-bg);
+  }
+  
+  .sidebar a {
+    color: var(--text-color);
+  }
+  
+  .sidebar a.active,
+  .sidebar a:hover {
+    background-color: rgba(255, 193, 7, 0.1);
+  }
+  
+  .card, .main-content, .card-service, .card-settings {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+  }
+  

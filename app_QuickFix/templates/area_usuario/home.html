@@ -1,0 +1,55 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block content %}
+
+
+{% comment %} Barra para pesquiza de serviço {% endcomment %}
+<form class="search-bar" method="get" action="{% url 'home_user' %}">
+  <input type="text" name="q" placeholder="Nos diga o que deseja" value="{{ q }}">
+  <button class="btn btn-dark"><i class="fas fa-search"></i></button>
+</form>
+
+<h4 class="section-title">Serviços mais Pedidos</h4>
+
+<div class="row g-4">
+  {% for servico in servicos %}
+    <div class="col-md-4">
+      <div class="card card-service">
+        {% if servico.imagem_p %}
+          <img src="{{ servico.imagem_p.url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+        {% else %}
+          <img src="{% static 'img/system/default_service_img.jpg' %}" class="card-img-top" style="height: 200px; object-fit: cover;">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title">{{ servico.titulo|default:'Sem título' }}</h5>
+
+          {% if incluir_favoritos %}
+          <form method="POST" action="{% url 'favoritar' %}">
+            {% csrf_token %}
+            {% if servico in incluir_favoritos %}
+              <button type="submit" name="favoritar" value="{{ servico.id }},False" class="btn btn-link">
+                <i class="fas fa-heart text-danger"></i>
+              </button>
+            {% else %}
+              <button type="submit" name="favoritar" value="{{ servico.id }},True" class="btn btn-link">
+                <i class="far fa-heart"></i>
+              </button>
+            {% endif %}
+          </form>
+          {% endif %}
+
+          {% if button_info %}
+            <a href="{% url button_info.url id=servico.id %}" class="btn btn-warning w-100">{{ button_info.text }}</a>
+          {% else %}
+            <a href="{% url 'servico_detalhe' id=servico.id %}" class="btn btn-warning w-100">Consultar Serviço</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-muted">Nenhum serviço disponível no momento.</p>
+  {% endfor %}
+</div>
+
+{% endblock %}

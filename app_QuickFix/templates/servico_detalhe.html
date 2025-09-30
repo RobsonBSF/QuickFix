@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ servico.titulo }} - QuickFix{% endblock %}
+
+{% block extra_head %}
+<style>
+  .servico-container {
+    max-width: 900px;
+    margin: auto;
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  }
+
+  .servico-titulo {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+
+  .servico-preco {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #e67e22;
+  }
+
+  .servico-img {
+    width: 100%;
+    max-height: 350px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .badge {
+    background-color: #ffc107;
+    color: #212529;
+    font-weight: 500;
+    margin-right: 6px;
+  }
+
+  .btn-contratar {
+    background-color: #ffc107;
+    color: #212529;
+    font-weight: 600;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-contratar:hover {
+    background-color: #e0a800;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+ <div class="topbar d-flex justify-content-between align-items-center mb-4">
+    <h2 class="me-3 mb-0">Painel de Controle</h2>
+    {% include 'partials/topbar_profile.html' %}
+    </div>
+<div class="main-content">
+   
+
+<div class="servico-container">
+    <h2 class="servico-titulo mb-3">{{ servico.titulo }}</h2>
+
+    <div class="mb-3">
+      <span class="badge">{{ servico.categoria }}</span>
+      {% if servico.cancelamento %}
+        <span class="badge text-bg-success">Cancelamento grátis</span>
+      {% endif %}
+    </div>
+
+    {% if servico.imagem_p %}
+      <img src="{{ servico.imagem_p.url }}" alt="Imagem do serviço" class="servico-img">
+    {% endif %}
+
+    <p><strong>Descrição:</strong> {{ servico.descricao }}</p>
+    <p><strong>Tempo estimado:</strong> {{ servico.tempo_estimado }} horas</p>
+    <p><strong>Requisitos:</strong> {{ servico.requisitos }}</p>
+
+    {% if servico.endereco %}
+      <p><strong>Endereço:</strong> {{ servico.endereco }}</p>
+    {% endif %}
+
+    <p class="servico-preco">R$ {{ servico.preco }}</p>
+
+    <div class="mt-4">
+      <a href="#" class="btn btn-contratar">
+        <i class="fas fa-handshake"></i> Contratar serviço
+      </a>
+    </div>
+
+    {% if pode_conversar %}
+      <a href="{% url 'direct_chat' criador_id %}" class="btn">
+        Abrir Chat com o anunciante
+      </a>
+    {% else %}
+      <button class="btn" disabled>Você é o criador deste anúncio</button>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

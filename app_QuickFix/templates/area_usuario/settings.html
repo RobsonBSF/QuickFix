@@ -1,0 +1,37 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="card-settings">
+  <h5>Personalização</h5>
+  <div class="form-check form-switch mt-3">
+    <input class="form-check-input" type="checkbox" id="themeSwitch">
+    <label class="form-check-label" for="themeSwitch">Modo escuro (Noite)</label>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const switchInput = document.getElementById('themeSwitch');
+    if (switchInput) {
+      const isDark = localStorage.getItem('theme') === 'dark';
+      document.documentElement.classList.toggle('dark-mode', isDark);
+      switchInput.checked = isDark;
+
+      switchInput.addEventListener('change', function () {
+        if (this.checked) {
+          document.documentElement.classList.add('dark-mode');
+          localStorage.setItem('theme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark-mode');
+          localStorage.setItem('theme', 'light');
+        }
+      });
+    }
+  });
+</script>
+
+{% endblock %}

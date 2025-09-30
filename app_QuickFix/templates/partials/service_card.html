@@ -1,0 +1,83 @@
+{% load static %}
+
+{% block extra_head %}
+<style>
+    .card-indicator {
+        border-radius: 12px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        transition: 0.3s;
+    }
+    .card-indicator:hover {
+        transform: translateY(-5px);
+    }
+    .icon-box {
+        font-size: 1.5rem;
+        background: #f0f2f5;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+<div class="row g-4">
+
+  <!-- Titulo personalizado -->
+  {% if title %}
+    <h4 class="section-title">{{ title }}</h4>
+  {% endif %}
+
+  {% for servico in servicos %}
+    <div class="col-md-4">
+      <div class="card card-service">
+        {% if servico.imagem_p %}
+          <img src="{{ servico.imagem_p.url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+        {% else %}
+          <img src="{% static 'img/system/default_service_img.jpg' %}" class="card-img-top" style="height: 200px; object-fit: cover;">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title">{{ servico.titulo|default:'Title err' }}</h5>
+          {% if incluir_favoritos %}
+          <form method="POST" action="{% url 'favoritar' %}">
+            {% csrf_token %}
+            {% if servico in incluir_favoritos %}
+              <!-- Exibe o botão/favorito preenchido -->
+              <button type="submit" name="favoritar" value="{{ servico.id }},False" class="btn btn-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart-fill" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
+                </svg>
+            {% else %}
+              <!-- Exibe o botão/favorito vazio -->
+                <button type="submit" name="favoritar" value="{{ servico.id }},True" class="btn btn-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
+                  <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
+                </svg>
+            {% endif %}
+            </button>
+          </form>
+          {% endif %}
+          {% if button_info %}
+            <!-- Atencao! add, tenta somar numeros -->
+            <a href="{% url button_info.url id=servico.id %}" class="btn btn-warning w-100">{{ button_info.text }}</a>
+          {% else %}
+            <a href="{% url 'servico_detalhe' id=servico.id %}" class="btn btn-warning w-100">Consultar Serviço</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-muted">Nenhum serviço disponível no momento.</p>
+  {% endfor %}
+</div>
+
+
+{% comment %}
+
+{% block servicos %}
+  {% include "partials/service_card.html" with servicos=servicos %}
+{% endblock %}
+
+{% endcomment %}

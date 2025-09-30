@@ -1,0 +1,5 @@
+{% for m in messages %}
+  <li>[{{ m.created_at|date:'H:i:s' }}] {{ m.sender.username }}: {{ m.content }}</li>
+{% empty %}
+  <li>Nenhuma mensagem ainda.</li>
+{% endfor %}

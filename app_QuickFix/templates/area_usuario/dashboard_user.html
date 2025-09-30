@@ -1,0 +1,105 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - QuickFix{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card-indicator {
+        border-radius: 12px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        transition: 0.3s;
+    }
+    .card-indicator:hover {
+        transform: translateY(-5px);
+    }
+    .icon-box {
+        font-size: 1.5rem;
+        background: #f0f2f5;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Indicadores de Atividades -->
+    <div class="row mb-5">
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-bell text-primary"></i></div>
+                    <div>
+                        <small>Vizualizacões</small>
+                        <h4>{{ visualizacoes|default:'-' }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-file-signature text-warning"></i></div>
+                    <div>
+                        <small>Propostas</small>
+                        <h4>{{ novas_propostas|default:'-' }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-envelope text-success"></i></div>
+                    <div>
+                        <small>Mensagens</small>
+                        <h4>{{ mensagens|default:'-' }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-indicator p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3"><i class="fas fa-credit-card text-danger"></i></div>
+                    <div>
+                        <small>Pagamentos Pendentes</small>
+                        <h4>{{ pagamentos_pendentes|default:'-' }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores de Desempenho -->
+    <h5 class="mb-3">Desempenho como Prestador</h5>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card card-indicator p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small>Taxa de Aceitação</small>
+                        <h4>{{ taxa_aceitacao|default:'-' }}%</h4>
+                    </div>
+                    <i class="fas fa-check-circle text-success fs-3"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-indicator p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small>Nota Média</small>
+                        <h4>{{ nota_media|default:'-' }} ★</h4>
+                    </div>
+                    <i class="fas fa-star text-warning fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

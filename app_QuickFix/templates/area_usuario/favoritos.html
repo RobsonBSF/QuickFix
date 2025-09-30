@@ -1,0 +1,16 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <form method="get" class="search-bar">
+  <input type="text" name="q" value="{{ q }}" placeholder="Nos diga o que deseja">
+  <button type="submit" class="btn btn-dark"><i class="fas fa-search"></i></button>
+</form>
+
+
+  {% block servicos %}
+    {% include "partials/service_card.html" with servicos=servicos_favoritos %}
+  {% endblock %}
+
+{% endblock %}

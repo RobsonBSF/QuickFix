@@ -1,0 +1,36 @@
+
+<div class="sidebar">
+  <a href="{% url 'index' %}">
+    <h4 class="mb-4">QuickFix</h4>
+  </a>
+  <a href="{% url 'home_user' %}" class="{% if active_page == 'amigos' %}active{% endif %}">
+    <i class="fas fa-user-friends"></i> Home
+  </a>
+  <a href="{% url 'favoritos' %}" class="{% if active_page == 'favoritos' %}active{% endif %}">
+    <i class="fas fa-heart"></i> Favoritos
+  </a>
+  <a href="{% url 'dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}">
+    <i class="fas fa-chart-line"></i> Dashboard
+  </a>
+  <a href="{% url 'meus_servicos' %}" class="{% if active_page == 'meus_servicos' %}active{% endif %}">
+    <i class="fas fa-list"></i> Meus Serviços
+  </a>
+  <a href="{% url 'minhas_conversas' %}" class="{% if active_page == 'minhas_conversas' %}active{% endif %}">
+    <i class="fas fa-comments"></i> Minhas Conversas
+  </a>
+  <a href="{% url 'cadastro_de_servico' %}" class="{% if active_page == 'cadastro_de_servico' %}active{% endif %}">
+    <i class="fas fa-plus"></i> Novo Anúncio
+  </a>
+  <a href="{% url 'configuracoes' %}" class="{% if active_page == 'configuracoes' %}active{% endif %}">
+    <i class="fas fa-cog"></i> Configurações
+  </a>
+</div>
+
+{% comment %}
+
+{% block sidebar %}
+  {% include "partials/side_bar.html" with active_page="dashboard" %}
+{% endblock %}
+
+{% endcomment %}
+

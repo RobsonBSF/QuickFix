@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Chat com {{ other.username }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Chat com {{ other.username }}</h2>
+  <ul id="messages" style="height:300px; overflow:auto; border:1px solid #ccc; padding:8px;">
+    {% for m in messages %}
+      <li>[{{ m.created_at|date:'H:i:s' }}] {{ m.sender.username }}: {{ m.content }}</li>
+    {% empty %}
+      <li>Nenhuma mensagem ainda.</li>
+    {% endfor %}
+  </ul>
+
+  <form id="chat-form" method="post">
+    {% csrf_token %}
+    <input id="chat-input" name="message" type="text" placeholder="Digite sua mensagem..." autocomplete="off">
+    <button class="btn" type="submit">Enviar</button>
+  </form>
+</div>
+
+<script>
+  // Função para buscar mensagens novas
+  function fetchMessages() {
+    fetch(window.location.href + "?ajax=1")
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById("messages").innerHTML = html;
+      });
+  }
+
+  // Atualiza mensagens a cada 3 segundos
+  setInterval(fetchMessages, 3000);
+
+  // Envio do formulário via AJAX
+  document.getElementById("chat-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    let formData = new FormData(this);
+    fetch(window.location.href, {
+      method: "POST",
+      body: formData
+    }).then(() => {
+      document.getElementById("chat-input").value = "";
+      fetchMessages(); // atualiza logo após enviar
+    });
+  });
+</script>
+{% endblock %}

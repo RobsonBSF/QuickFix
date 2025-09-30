@@ -1,0 +1,302 @@
+{% load django_browser_reload %}
+{% django_browser_reload_script %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QuickFix{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <script>
+        (function() {
+          try {
+            if (localStorage.getItem('theme') === 'dark') {
+              document.body?.classList?.add('dark-mode');
+            }
+          } catch (e) {}
+        })();
+      </script>
+    <style>
+        :root {
+            --background: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+          }
+        
+          .dark-mode {
+            --background: #181a1b;
+            --text-color: #f8f9fa;
+            --card-bg: #242526;
+          }
+        
+          body {
+            background-color: var(--background);
+            color: var(--text-color);
+          }
+        
+          .sidebar, .card-service, .card-settings {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+          }
+        
+          .sidebar a {
+            color: var(--text-color);
+          }
+        
+          footer {
+            color: var(--text-color);
+          }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .sidebar {
+            width: 250px;
+            position: fixed;
+            height: 100vh;
+            background-color: #fff;
+            border-right: 1px solid #dee2e6;
+            padding: 20px 15px;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .sidebar a i {
+            margin-right: 10px;
+        }
+        .sidebar a.active, .sidebar a:hover {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        .main-content {
+            margin-left: 270px;
+            padding: 30px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #dee2e6;
+        }
+        .search-bar {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+        .search-bar input {
+            border-radius: 30px;
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            flex: 1;
+        }
+        .search-bar button {
+            margin-left: 10px;
+            border-radius: 30px;
+        }
+        .section-title {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+            padding-left: 10px;
+            font-weight: 600;
+        }
+        .card-service {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .card-service:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .card-service .price {
+            font-weight: bold;
+            color: #e67e22;
+        }
+        .card-service .old-price {
+            text-decoration: line-through;
+            color: #bbb;
+            font-size: 0.9em;
+        }
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888;
+        }
+    </style>
+    
+      {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+
+    {% comment %} Bloco side bar padronizado para o site {% endcomment %}
+    {% block sidebar %}  
+    <div class="sidebar">
+      <a href="{% url 'home' %}">
+        <h4 class="mb-4">QuickFix</h4></a>
+        <a href="#"><i class="fas fa-user-friends"></i> Home</a>
+        <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
+        <a href="{% url 'dashboard' %}" class="active"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a href="{% url 'meus_servicos' %}"><i class="fas fa-list"></i> Meus Serviços</a>
+        <a href="{% url 'minhas_conversas' %}"><i class="fas fa-comments"></i> Minhas Conversas</a>
+        <a href="{% url 'cadastro_de_servico' %}"><i class="fas fa-plus"></i> Novo Anúncio</a>
+        <a href="{% url 'configuracoes'  %}"><i class="fas fa-cog"></i> Configurações</a>
+    </div>
+    {% endblock %}
+
+
+    <div class="main-content">
+        {% block content %}
+    <div class="topbar d-flex justify-content-between align-items-center mb-4">
+      {% block topbar_title %}<h2 class="me-3 mb-0">Home</h2>{% endblock %}
+
+      {% block topbar_profile %}
+      {% include 'partials/topbar_profile.html' %}
+      {% endblock %}
+    </div>
+
+
+    {% comment %} Fim do perfil {% endcomment %}
+
+        {% comment %} Barra de pesquiza {% endcomment %}
+        <form class="search-bar" method="get">
+          <input type="text" name="q" placeholder="Nos diga o que deseja" value="{{ q }}">
+          <button type="submit" class="btn btn-dark"><i class="fas fa-search"></i></button>
+        </form>
+        
+        {% comment %} Começo dos posts {% endcomment %}
+         
+          <h4 class="section-title">Serviços mais Pedidos</h4>
+          <div class="row g-4">
+            {% for servico in servicos %}
+              <div class="col-md-4">
+                <div class="card card-service">
+                  {% if servico.imagem_p %}
+                    <img src="{{ servico.imagem_p.url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                  {% else %}
+                    <img src="{% static 'img/sem_imagem.jpg' %}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                  {% endif %}
+                  <div class="card-body">
+                    <h5 class="card-title">{{ servico.titulo }}</h5>
+                    <p class="card-text">
+                      <span class="price">R$ {{ servico.preco }}</span>
+                    </p>
+                    <a href="{% url 'servico_detalhe' id=servico.id %}" class="btn btn-warning w-100">Consultar Serviço</a>
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <p class="text-muted">Nenhum serviço disponível no momento.</p>
+            {% endfor %}
+          </div>
+
+          <h4 class="section-title">Os mais procurados</h4>
+              
+          <div class="row g-4">
+            {% for servico in servicos %}
+              <div class="col-md-4">
+                <div class="card card-service">
+                  {% if servico.imagem_p %}
+                    <img src="{{ servico.imagem_p.url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                  {% else %}
+                    <img src="{% static 'img/sem_imagem.jpg' %}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                  {% endif %}
+                  <div class="card-body">
+                    <h5 class="card-title">{{ servico.titulo }}</h5>
+                    <p class="card-text">
+                      <span class="price">R$ {{ servico.preco }}</span>
+                    </p>
+                    <a href="{% url 'servico_detalhe' id=servico.id %}" class="btn btn-warning w-100">Consultar Serviço</a>
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <p class="text-muted">Nenhum serviço disponível no momento.</p>
+            {% endfor %}
+          </div>
+
+
+        <footer class="mt-5">
+            <p>&copy; 2025 QuickFix. Todos os direitos reservados.</p>
+        </footer>
+        {% endblock %}
+    </div>  
+     <!-- Bootstrap Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+     <!-- Tema switch -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const switchInput = document.getElementById('themeSwitch');
+      if (switchInput) {
+        switchInput.checked = localStorage.getItem('theme') === 'dark';
+
+        switchInput.addEventListener('change', function () {
+          if (this.checked) {
+            document.documentElement.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+          }
+        });
+      }
+    });
+  </script>
+
+  {% block scripts %}
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const switchInput = document.getElementById('themeSwitch');
+    if (switchInput) {
+      const isDark = localStorage.getItem('theme') === 'dark';
+      document.documentElement.classList.toggle('dark-mode', isDark);
+      switchInput.checked = isDark;
+
+      switchInput.addEventListener('change', function () {
+        if (this.checked) {
+          document.documentElement.classList.add('dark-mode');
+          localStorage.setItem('theme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark-mode');
+          localStorage.setItem('theme', 'light');
+        }
+      });
+    } else {
+      // Garante que o tema é aplicado mesmo sem o botão presente
+      const isDark = localStorage.getItem('theme') === 'dark';
+      document.documentElement.classList.toggle('dark-mode', isDark);
+    }
+  });
+</script>
+  {% endblock %}
+</body>
+</html>

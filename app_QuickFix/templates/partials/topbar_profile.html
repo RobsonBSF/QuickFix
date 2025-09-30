@@ -1,0 +1,32 @@
+{% load static %}
+<div class="dropdown">
+  <button class="btn btn-outline-dark dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <div class="position-relative">
+      {% if user.profile_image %}
+        <img src="{{ user.profile_image.url }}" alt="Foto de Perfil" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+      {% else %}
+        <img src="{% static 'img/system/default_user_img.png' %}" alt="Foto de Perfil Padrão" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+      {% endif %}
+    </div>
+    <div class="text-start d-none d-md-block">
+      <div class="fw-semibold">{{ user.nome|default:user.username }}</div>
+      <small class="text-muted">{{ user.email|default:"example@hotmail.com" }}</small>
+    </div>
+  </button>
+
+  <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'perfil' %}"><i class="fas fa-user-circle text-primary"></i> Perfil</a></li>
+    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'configuracoes' %}"><i class="fas fa-cogs text-secondary"></i> Configurações</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item text-danger d-flex align-items-center gap-2" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+  </ul>
+</div>
+
+
+{% comment %}
+
+{% block topbar_profile %}
+  {% include "partials/topbar_profile.html" with user=user %}
+{% endblock %}
+
+{% endcomment %}

@@ -1,1 +1,34 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Banco de dados de desenvolvimento
 db.sqlite3
+
+# Migrations compiladas
+*/migrations/__pycache__/
+*/migrations/*.pyc
+
+# Arquivos de configuração sensíveis
+.env
+
+# Pastas de ambiente virtual
+venv/
+env/
+.venv/
+
+# Arquivos de mídia e estáticos coletados
+/media
+/staticfiles
+/static_root/
+
+# Logs
+*.log
+
+# IDEs e editores
+.vscode/
+.idea/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db

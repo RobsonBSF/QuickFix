@@ -1,0 +1,14 @@
+{% load static %}
+
+<div class="search-bar">
+  <input type="text" name="q" value="{{ q }}" placeholder="Nos diga o que deseja">
+  <button class="btn btn-dark"><i class="fas fa-search"></i></button>
+</div>
+
+{% comment %}
+
+{% block barra_pesquisa %}
+  {% include "partials/barra_pesquisa.html" %}
+{% endblock %}
+
+{% endcomment %}

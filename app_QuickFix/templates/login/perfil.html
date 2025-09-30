@@ -1,0 +1,116 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+  .profile-container {
+    max-width: 600px;
+    background: #fff;
+    margin: auto;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+  .profile-pic {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 25px;
+  }
+  .profile-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #dee2e6;
+  }
+  .camera-icon {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background-color: #2e2f69;
+    color: white;
+    border-radius: 50%;
+    padding: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 2px solid white;
+  }
+  .btn-save {
+    background-color: #2e2f69;
+    color: white;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 500;
+    font-size: 1rem;
+  }
+  .btn-save:hover {
+    background-color: #1f2147;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+  <form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="profile-pic text-center">
+      {% if user.profile_image %}
+        <img src="{{ user.profile_image.url }}" name="profile_image" alt="Foto de Perfil" id="profilePreview">
+      {% else %}
+        <img src="{% static 'img/system/default_user_img.png' %}" name="profile_image" alt="Foto de Perfil" id="profilePreview">
+      {% endif %}
+      <label for="profileImage" class="camera-icon">
+        <i class="fas fa-camera"></i>
+      </label>
+      <input type="file" name="input_image" id="profileImage" accept="image/*" style="display: none;">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Nome Completo</label>
+      <input type="text" name="nome" class="form-control" value='{{ user.nome|default:"" }}'>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" name="email" class="form-control" value='{{ user.email|default:"" }}' required>
+    </div>
+
+    {% if form_info %}
+      <div id="alert-box" class="alert alert-{{ form_info.type|default:'danger' }} mt-2">
+        {{ form_info.msg }}
+      </div>
+      <script>
+        setTimeout(function() {
+          const alertBox = document.getElementById('alert-box');
+          if (alertBox) {
+            alertBox.style.display = 'none';
+          }
+        }, 5000);
+      </script>
+    {% endif %}
+
+    <button type="submit" class="btn btn-save w-100">Salvar Alterações</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const input = document.getElementById('profileImage');
+  const preview = document.getElementById('profilePreview');
+
+  if (input) {
+    input.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.setAttribute('src', e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+</script>
+{% endblock %}

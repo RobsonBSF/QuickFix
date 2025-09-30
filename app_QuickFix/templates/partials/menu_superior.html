@@ -1,0 +1,15 @@
+
+<div class="topbar d-flex justify-content-between align-items-center mb-4">
+  <h2 class="me-4 mb-0">{{ title|default:'Home' }}</h2>
+  {% block topbar_profile %}
+    {% include 'partials/topbar_profile.html' %}
+  {% endblock %}
+</div>
+
+{% comment %}
+
+{% block menu_superior %}
+  {% include "partials/menu_superior.html" with title="Titulo" %}
+{% endblock %}
+
+{% endcomment %}

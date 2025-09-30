@@ -1,0 +1,22 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <p> Fazer no futuro </p>
+
+  
+{% block barra_pesquisa %}
+  {% include "partials/barra_pesquisa.html" %}
+{% endblock %}
+
+
+ <section class="py-5">
+    <div class="container">
+      <h3 class="mb-4 text-center">Serviços Populares</h3>
+      {% block servicos %}
+        {% include "partials/service_card.html" with servicos=servicos %}
+      {% endblock %}
+    </div>
+  </section>
+{% endblock %}

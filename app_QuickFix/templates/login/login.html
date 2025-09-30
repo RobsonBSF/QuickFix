@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Login - QuickFix{% endblock %}
+
+{% block sidebar %}{% endblock %} {# ← isso remove a sidebar #}
+
+{% block extra_head %}
+<!-- Estilos específicos do login -->
+ <style>
+  /* Corrige o deslocamento lateral causado pela ausência da sidebar */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--background);
+  }
+
+  .login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .login-container {
+    max-width: 400px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 40px 30px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    color: var(--text-color);
+  }
+
+  .login-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: bold;
+  }
+
+  .form-control {
+    padding: 12px 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+
+  .btn-login {
+    background-color: #ffc107;
+    border: none;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #212529;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+
+  .btn-login:hover {
+    background-color: #e0a800;
+  }
+
+  .forgot-password {
+    font-size: 0.9rem;
+    color: #ffc107;
+    text-decoration: none;
+  }
+
+  .register-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: var(--text-color);
+  }
+
+  .register-link a {
+    color: #ffc107;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .alert-danger {
+    font-size: 0.9rem;
+    margin-top: 10px;
+  }
+</style>
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-container">
+    <h2>Entrar no QuickFix</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <input type="text" name="username" class="form-control" placeholder="Usuário" required>
+      <input type="password" name="senha" class="form-control" placeholder="Senha" required>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="remember_me" id="rememberMe">
+          <label class="form-check-label" for="rememberMe">Me lembre</label>
+        </div>
+        <a href="{% url 'password_reset' %}" class="forgot-password">Esqueceu a senha?</a>
+      </div>
+
+      <button type="submit" class="btn btn-login">Entrar</button>
+
+      {% if form_err %}
+        <div class="alert alert-danger">{{ form_err }}</div>
+      {% endif %}
+
+      <div class="register-link">
+        Ainda não tem conta? <a href="{% url 'cadastro' %}">Cadastre-se</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
