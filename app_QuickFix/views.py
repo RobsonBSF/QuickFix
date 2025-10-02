@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import DirectThread, DirectMessage, CustomUser
 from uuid import UUID
@@ -50,30 +50,37 @@ def base_Usuario_view(request):
 
 @login_required
 def dashboard(request):
+    user = request.user
+    print(f'Usuário logado: {user.id}')  
 
-    user = request.user; print(f'Usuário logado: {user.id}')  # Pega o usuário logado
+    # Quantidade de visualizações dos serviços do usuário
+    visualizacoes = Servico_visualizacao.objects.filter(servico__user=user).count()
 
-    visualizacoes = (Servico_visualizacao.objects.filter(servico__user=user)).count() # Pega a quantidade de visualizações do usuário 
-    #propostas
-    #mensagens
-    #pagamentos_pedentes
+    # Mensagens recebidas pelo usuário
+    mensagens = DirectMessage.objects.filter(
+        thread__user1=user
+    ).exclude(sender=user).count()
 
-    #aceitao
-    #Nota
+    # Nota média das avaliações
+    nota_media = Servico_avaliacao.objects.filter(servico__user=user).aggregate(
+        avg=Avg("avaliacao")
+    )["avg"] or 0
 
-    #print(f'Infos: {visualizacoes}, ')
+    # Taxa de aceitação (placeholder, futuramente com base em propostas aceitas)
+    taxa_aceitacao = 0  
 
-    return render(request, Area_usuario+'dashboard_user.html', {
+    return render(request, Area_usuario + 'dashboard_user.html', {
         'pagina': {
             'name': 'Painel de Controle',
             'code': 'dashboard'
         },
-        'visualizacoes': visualizacoes
-        #'propostas'
-        #'mensagens'
-        #'pagamentos_pedentes'
-        #'#aceitao'
-        #'Nota'
+        'visualizacoes': visualizacoes,
+        'mensagens': mensagens,
+        'nota_media': round(nota_media, 1),
+        'taxa_aceitacao': taxa_aceitacao,
+        # placeholders
+        'novas_propostas': None,
+        'pagamentos_pendentes': None,
     })
 
 
