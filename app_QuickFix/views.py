@@ -1,14 +1,18 @@
-from django.db.models import Q
+# imports no topo
+from decimal import Decimal, InvalidOperation
+from django.db.models import Q, Avg, Count
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import DirectThread, DirectMessage, CustomUser
-from uuid import UUID
-
-#from django.contrib import auth
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 
+from .models import (
+    Servico, Servico_favoritos, Servico_avaliacao, Servico_visualizacao,
+    DirectThread, DirectMessage, CustomUser
+)
+from .filters import ServicoFilter
 #from .forms import PerfilForm #! pra que?
-from .models import Servico, Servico_favoritos, Servico_avaliacao, Servico_visualizacao
+from .models import Servico, Servico_favoritos, Servico_visualizacao
 
 #* Pegamos o modelo de usuário correto (CustomUser) pelo *Django*.
 CustomUser = get_user_model()
@@ -16,25 +20,155 @@ CustomUser = get_user_model()
 Area_usuario = 'area_usuario/'
 Area_login = 'login/'
 
+ALLOWED_ORDER = {
+    "-data_criacao", "data_criacao",
+    "preco", "-preco",
+    "titulo", "-titulo",
+    "avg_rating", "-avg_rating",
+}
+
+def _servico_base_queryset():
+    return (
+        Servico.objects
+        .select_related('user')
+        .prefetch_related('avaliacoes')
+        .annotate(
+            avg_rating=Avg('avaliacoes__avaliacao'),
+            num_ratings=Count('avaliacoes')
+        )
+    )
+# ----------------------------
+# Areas filtros e buscas
+# ----------------------------
+
+def build_servico_queryset(request, base_qs=None):
+    qs = base_qs or Servico.objects.all()
+
+    # Busca livre
+    q = request.GET.get("q")
+    if q:
+        qs = qs.filter(
+            Q(titulo__icontains=q) |
+            Q(descricao__icontains=q) |
+            Q(categoria__icontains=q)
+        )
+
+    # Status (A/I)
+    status = request.GET.get("status")
+    if status in {"A", "I"}:
+        qs = qs.filter(status=status)
+
+    # Categoria (texto livre)
+    categoria = request.GET.get("categoria")
+    if categoria:
+        qs = qs.filter(categoria__icontains=categoria)
+
+    # JSONField atendimento
+    if request.GET.get("presencial") == "1":
+        qs = qs.filter(atendimento__presencial=True)
+    if request.GET.get("remoto") == "1":
+        qs = qs.filter(atendimento__remoto=True)
+
+    # Cancelamento permitido
+    if request.GET.get("cancelamento") == "1":
+        qs = qs.filter(cancelamento=True)
+
+    # Faixa de preço
+    preco_min = request.GET.get("preco_min")
+    preco_max = request.GET.get("preco_max")
+    try:
+        if preco_min:
+            qs = qs.filter(preco__gte=Decimal(preco_min))
+        if preco_max:
+            qs = qs.filter(preco__lte=Decimal(preco_max))
+    except (InvalidOperation, TypeError):
+        pass  # ignora valores inválidos
+
+    # Tempo máximo (min)
+    tempo_max = request.GET.get("tempo_max")
+    if tempo_max and tempo_max.isdigit():
+        qs = qs.filter(tempo_estimado__lte=int(tempo_max))
+
+    # Nota média (annotation na relação 'avaliacoes')
+    qs = qs.annotate(
+        avg_rating=Avg('avaliacoes__avaliacao'),
+        num_ratings=Count('avaliacoes'),
+    )
+    nota_min = request.GET.get("nota_min")
+    try:
+        if nota_min:
+            qs = qs.filter(avg_rating__gte=float(nota_min))
+    except ValueError:
+        pass
+
+    # (Opcional) Só favoritos do usuário logado
+    if request.GET.get("so_favoritos") == "1" and request.user.is_authenticated:
+        qs = qs.filter(favoritos__user=request.user)
+
+    # Ordenação segura
+    order = request.GET.get("ord") or "-data_criacao"
+    if order in ALLOWED_ORDER:
+        qs = qs.order_by(order)
+
+    return qs
+
 # ----------------------------
 # Areas Gerais
 # ----------------------------
 
 def index_view(request):
+    base = _servico_base_queryset().order_by('-data_criacao')
 
-    services = Servico.objects.all().order_by('-data_criacao')
+    filtro = ServicoFilter(request.GET, queryset=base)
+    qs = filtro.qs
 
-    sender_page = {
-        'servicos': services,
-        'incluir_favoritos': None
+    paginator = Paginator(qs, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    ctx = {
+        'servicos': page_obj.object_list,
+        'page_obj': page_obj,
+        'filter': filtro,
+        'q': request.GET.get('q', ''),
+        'incluir_favoritos': None,
     }
 
-    user = request.user; # print(f'Usuário logado: {user.id}')  # Pega o usuário logado
-    favoritos = None
+    if request.user.is_authenticated:
+        ctx['incluir_favoritos'] = [
+            f.servico for f in Servico_favoritos.objects.filter(user=request.user)
+        ]
 
-    if user.is_authenticated:
-        sender_page['incluir_favoritos'] = [f.servico for f in Servico_favoritos.objects.filter(user=request.user)] or  [{'ative:': True}]
-        
+    return render(request, 'index.html', ctx)
+
+    base = (
+        Servico.objects
+        .select_related('user')
+        .prefetch_related('avaliacoes')
+        .annotate(
+            avg_rating=Avg('avaliacoes__avaliacao'),
+            num_ratings=Count('avaliacoes')
+        )
+        .order_by('-data_criacao')
+    )
+
+    filtro = ServicoFilter(request.GET, queryset=base)
+    qs = filtro.qs
+
+    paginator = Paginator(qs, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    sender_page = {
+        'servicos': page_obj.object_list,
+        'page_obj': page_obj,
+        'filter': filtro,
+        'q': request.GET.get('q', ''),
+        'incluir_favoritos': None,
+    }
+
+    if request.user.is_authenticated:
+        sender_page['incluir_favoritos'] = [
+            f.servico for f in Servico_favoritos.objects.filter(user=request.user)
+        ]
 
     return render(request, 'index.html', sender_page)
 
@@ -119,27 +253,37 @@ def amigos(request):
 
 @login_required
 def home_user(request):
-    query = request.GET.get('q', '')
+    base = (
+        Servico.objects
+        .select_related('user')
+        .prefetch_related('avaliacoes')
+        .annotate(
+            avg_rating=Avg('avaliacoes__avaliacao'),
+            num_ratings=Count('avaliacoes'),
+        )
+        # não ordene aqui; deixe a ordenação para o filtro "ordenar"
+    )
 
-    if query:
-        services = Servico.objects.filter(
-            titulo__icontains=query
-        ).order_by('-data_criacao')
-    else:
-        services = Servico.objects.all().order_by('-data_criacao')
+    filtro = ServicoFilter(request.GET, queryset=base)
+    qs = filtro.qs
 
-    sender_page = {
-        'servicos': services,
-        'incluir_favoritos': [],
-        'q': query
-    }
+    # se nada for passado em 'ordenar', aplica default no final:
+    if "ordenar" not in request.GET:
+        qs = qs.order_by("-data_criacao")
 
-    if request.user.is_authenticated:
-        sender_page['incluir_favoritos'] = [
+    paginator = Paginator(qs, 12)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    ctx = {
+        'servicos': page_obj.object_list,
+        'page_obj': page_obj,
+        'filter': filtro,
+        'q': request.GET.get('q', ''),
+        'incluir_favoritos': [
             f.servico for f in Servico_favoritos.objects.filter(user=request.user)
-        ]
-
-    return render(request, Area_usuario + 'home.html', sender_page)
+        ],
+    }
+    return render(request, 'area_usuario/home.html', ctx)
 
 
 @login_required

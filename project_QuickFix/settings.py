@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',      # ✅ ESSENCIAL: armazena sessões (como login)
     'widget_tweaks',                # ✅ Para estilizar os widgets do Django (ex: campos de formulário)
     'app_QuickFix',
+    'django_filters',# ✅ Para filtros avançados
 ]
 
 MIDDLEWARE = [

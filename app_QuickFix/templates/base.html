@@ -1,5 +1,6 @@
 {% load django_browser_reload %}
 {% django_browser_reload_script %}
+{% load widget_tweaks %}
 {% load static %}
 
 <!DOCTYPE html>
@@ -188,10 +189,24 @@
 
         {% comment %} Barra de pesquiza {% endcomment %}
         <form class="search-bar" method="get">
-          <input type="text" name="q" placeholder="Nos diga o que deseja" value="{{ q }}">
-          <button type="submit" class="btn btn-dark"><i class="fas fa-search"></i></button>
+          <input type="text" name="q" placeholder="Nos diga o que deseja para agora" value="{{ q }}">
+          <button type="submit" class="btn btn-dark">
+            <i class="fa-solid fa-search"></i>
+          </button>
         </form>
+
+       
         
+        {% comment %} Fim da barra de pesquisa {% endcomment %}
+
+        {% comment %} Filtro dos serviços {% endcomment %}
+
+        {% block filter_bar %}
+        {% include 'partials/filter_bar.html' %}
+        {% endblock %}
+
+        {% comment %} Fim do filtro {% endcomment %}
+
         {% comment %} Começo dos posts {% endcomment %}
          
           <h4 class="section-title">Serviços mais Pedidos</h4>
