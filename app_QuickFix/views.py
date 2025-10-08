@@ -1,20 +1,28 @@
-# imports no topo
+# app_QuickFix/views.py
+import re
 from decimal import Decimal, InvalidOperation
-from django.db.models import Q, Avg, Count
-from django.core.paginator import Paginator
-from django.shortcuts import render, get_object_or_404, redirect
+
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
+from django.core.paginator import Paginator
+from django.db import IntegrityError
+from django.db.models import Q, Avg, Count
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from .models import (
-    Servico, Servico_favoritos, Servico_avaliacao, Servico_visualizacao,
+    Servico, Servico_favoritos, Servico_visualizacao, Servico_contratado,
     DirectThread, DirectMessage, CustomUser
 )
 from .filters import ServicoFilter
-#from .forms import PerfilForm #! pra que?
-from .models import Servico, Servico_favoritos, Servico_visualizacao
 
-#* Pegamos o modelo de usuário correto (CustomUser) pelo *Django*.
+# -------------------------------------------------
+# Constantes e utilitários
+# -------------------------------------------------
 CustomUser = get_user_model()
 
 Area_usuario = 'area_usuario/'
@@ -37,14 +45,141 @@ def _servico_base_queryset():
             num_ratings=Count('avaliacoes')
         )
     )
-# ----------------------------
-# Areas filtros e buscas
-# ----------------------------
+# ---- Perfil do usuário ----
+@login_required
+def perfil(request):
+    user = request.user
 
+    if request.method == 'POST':
+        # Atualiza campos básicos
+        user.nome = request.POST.get('nome') or ""
+        user.email = request.POST.get('email') or user.email
+
+        # Atualiza imagem, se enviada
+        imagem_p = request.FILES.get('input_image')
+        if imagem_p:
+            user.profile_image = imagem_p
+
+        user.save()
+        messages.success(request, 'Perfil atualizado com sucesso!')
+        return redirect('perfil')  # volta para a mesma rota
+
+    # GET
+    return render(request, Area_login + 'perfil.html', {
+        'pagina': {'intro': False}
+    })
+# -------------------------------------------------
+# PIX helpers (BR Code estático)
+# -------------------------------------------------
+def _emv(field_id: str, value: str) -> str:
+    return f"{field_id}{len(value):02d}{value}"
+
+def _crc16(payload: str) -> str:
+    polynomial = 0x1021
+    crc = 0xFFFF
+    for ch in payload.encode("utf-8"):
+        crc ^= (ch << 8)
+        for _ in range(8):
+            if (crc & 0x8000) != 0:
+                crc = (crc << 1) ^ polynomial
+            else:
+                crc <<= 1
+            crc &= 0xFFFF
+    return f"{crc:04X}"
+
+def _sanitize(s, maxlen):
+    s = re.sub(r"[^A-Za-z0-9 @\.\-]", "", (s or "")).upper()
+    return s[:maxlen]
+
+def build_pix_br_code(chave: str, nome: str, cidade: str, valor: Decimal, txid: str) -> str:
+    nome = _sanitize(nome, 25)
+    cidade = _sanitize(cidade, 15)
+    txid = _sanitize(txid, 25)
+
+    mai = _emv("26", _emv("00", "br.gov.bcb.pix") + _emv("01", chave))
+    payload = (
+        _emv("00", "01")
+        + _emv("01", "12")
+        + mai
+        + _emv("52", "0000")
+        + _emv("53", "986")
+        + _emv("54", f"{Decimal(valor):.2f}")
+        + _emv("58", "BR")
+        + _emv("59", nome)
+        + _emv("60", cidade)
+        + _emv("62", _emv("05", txid))
+    )
+    to_crc = payload + "6304"
+    return payload + "63" + "04" + _crc16(to_crc)
+
+# -------------------------------------------------
+# Checkout PIX
+# -------------------------------------------------
+@login_required
+def servico_checkout_pix(request, servico_id):
+    servico = get_object_or_404(Servico, id=servico_id)
+    txid = f"QF{str(servico.id)[:10]}"
+    brcode = build_pix_br_code(
+        chave=getattr(settings, "PIX_KEY", ""),
+        nome=getattr(settings, "PIX_MERCHANT_NAME", "QUICKFIX"),
+        cidade=getattr(settings, "PIX_MERCHANT_CITY", "CAMPINAS"),
+        valor=servico.preco or Decimal("0.00"),
+        txid=txid,
+    )
+    ctx = {
+        "servico": servico,
+        "pix_brcode": brcode,
+        "pix_copia_cola": brcode,
+        "txid": txid,
+        "voltar_url": reverse("servico_detalhe", kwargs={"id": servico.id}),
+        "confirm_url": reverse("servico_checkout_confirm", kwargs={"servico_id": servico.id}),
+    }
+    return render(request, "pagamentos/checkout_pix.html", ctx)
+
+@login_required
+@require_http_methods(["POST"])
+def servico_checkout_confirm(request, servico_id):
+    servico = get_object_or_404(Servico, id=servico_id)
+    txid = request.POST.get("txid") or f"QF{str(servico.id)[:10]}"
+
+    Servico_contratado.objects.create(
+        user=request.user,
+        servico=servico,
+        valor=servico.preco,
+        txid=txid,
+        status="CONFIRMADO",
+    )
+
+    # emails
+    try:
+        if request.user.email:
+            send_mail(
+                f"Confirmação de compra - {servico.titulo}",
+                f"Olá, {request.user.username}!\nPagamento via PIX confirmado.\nValor: R$ {servico.preco:.2f}",
+                None,
+                [request.user.email],
+                fail_silently=True,
+            )
+        if servico.user and servico.user.email:
+            send_mail(
+                f"Seu serviço foi contratado - {servico.titulo}",
+                f"{request.user.username} contratou seu serviço.",
+                None,
+                [servico.user.email],
+                fail_silently=True,
+            )
+    except Exception:
+        pass
+
+    messages.success(request, "Pagamento confirmado! Enviamos um e-mail para você.")
+    return redirect("servico_detalhe", id=servico.id)
+
+# -------------------------------------------------
+# Filtros e buscas
+# -------------------------------------------------
 def build_servico_queryset(request, base_qs=None):
     qs = base_qs or Servico.objects.all()
 
-    # Busca livre
     q = request.GET.get("q")
     if q:
         qs = qs.filter(
@@ -53,27 +188,22 @@ def build_servico_queryset(request, base_qs=None):
             Q(categoria__icontains=q)
         )
 
-    # Status (A/I)
     status = request.GET.get("status")
     if status in {"A", "I"}:
         qs = qs.filter(status=status)
 
-    # Categoria (texto livre)
     categoria = request.GET.get("categoria")
     if categoria:
         qs = qs.filter(categoria__icontains=categoria)
 
-    # JSONField atendimento
     if request.GET.get("presencial") == "1":
         qs = qs.filter(atendimento__presencial=True)
     if request.GET.get("remoto") == "1":
         qs = qs.filter(atendimento__remoto=True)
 
-    # Cancelamento permitido
     if request.GET.get("cancelamento") == "1":
         qs = qs.filter(cancelamento=True)
 
-    # Faixa de preço
     preco_min = request.GET.get("preco_min")
     preco_max = request.GET.get("preco_max")
     try:
@@ -82,14 +212,12 @@ def build_servico_queryset(request, base_qs=None):
         if preco_max:
             qs = qs.filter(preco__lte=Decimal(preco_max))
     except (InvalidOperation, TypeError):
-        pass  # ignora valores inválidos
+        pass
 
-    # Tempo máximo (min)
     tempo_max = request.GET.get("tempo_max")
     if tempo_max and tempo_max.isdigit():
         qs = qs.filter(tempo_estimado__lte=int(tempo_max))
 
-    # Nota média (annotation na relação 'avaliacoes')
     qs = qs.annotate(
         avg_rating=Avg('avaliacoes__avaliacao'),
         num_ratings=Count('avaliacoes'),
@@ -101,24 +229,20 @@ def build_servico_queryset(request, base_qs=None):
     except ValueError:
         pass
 
-    # (Opcional) Só favoritos do usuário logado
     if request.GET.get("so_favoritos") == "1" and request.user.is_authenticated:
         qs = qs.filter(favoritos__user=request.user)
 
-    # Ordenação segura
     order = request.GET.get("ord") or "-data_criacao"
     if order in ALLOWED_ORDER:
         qs = qs.order_by(order)
 
     return qs
 
-# ----------------------------
-# Areas Gerais
-# ----------------------------
-
+# -------------------------------------------------
+# Páginas gerais
+# -------------------------------------------------
 def index_view(request):
     base = _servico_base_queryset().order_by('-data_criacao')
-
     filtro = ServicoFilter(request.GET, queryset=base)
     qs = filtro.qs
 
@@ -140,115 +264,43 @@ def index_view(request):
 
     return render(request, 'index.html', ctx)
 
-    base = (
-        Servico.objects
-        .select_related('user')
-        .prefetch_related('avaliacoes')
-        .annotate(
-            avg_rating=Avg('avaliacoes__avaliacao'),
-            num_ratings=Count('avaliacoes')
-        )
-        .order_by('-data_criacao')
-    )
-
-    filtro = ServicoFilter(request.GET, queryset=base)
-    qs = filtro.qs
-
-    paginator = Paginator(qs, 12)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
-    sender_page = {
-        'servicos': page_obj.object_list,
-        'page_obj': page_obj,
-        'filter': filtro,
-        'q': request.GET.get('q', ''),
-        'incluir_favoritos': None,
-    }
-
-    if request.user.is_authenticated:
-        sender_page['incluir_favoritos'] = [
-            f.servico for f in Servico_favoritos.objects.filter(user=request.user)
-        ]
-
-    return render(request, 'index.html', sender_page)
-
 def base_view(request):
     return render(request, 'base.html')
 
 def base_Usuario_view(request):
     return render(request, Area_usuario+'base.html')
 
-# ----------------------------
-# Area do Usuario
-# ----------------------------
-
+# -------------------------------------------------
+# Área do usuário
+# -------------------------------------------------
 @login_required
 def dashboard(request):
-
-    user = request.user; print(f'Usuário logado: {user.id}')  # Pega o usuário logado
-
-    visualizacoes = (Servico_visualizacao.objects.filter(servico__user=user)).count() # Pega a quantidade de visualizações do usuário 
-    #propostas
-    #mensagens
-    #pagamentos_pedentes
-
-    #aceitao
-    #Nota
-
-    #print(f'Infos: {visualizacoes}, ')
-
+    user = request.user
+    visualizacoes = Servico_visualizacao.objects.filter(servico__user=user).count()
     return render(request, Area_usuario+'dashboard_user.html', {
-        'pagina': {
-            'name': 'Painel de Controle',
-            'code': 'dashboard'
-        },
+        'pagina': {'name': 'Painel de Controle', 'code': 'dashboard'},
         'visualizacoes': visualizacoes
-        #'propostas'
-        #'mensagens'
-        #'pagamentos_pedentes'
-        #'#aceitao'
-        #'Nota'
     })
-
 
 @login_required
 def favoritos(request):
     user = request.user
-    query = request.GET.get('q', '')  # pega o termo de busca
-
-    # Busca os objetos de favoritos do usuário
+    query = request.GET.get('q', '')
     favoritos_qs = Servico_favoritos.objects.filter(user=user).order_by('-data_criacao')
-
-    # Aplica filtro se houver pesquisa
     if query:
         favoritos_qs = favoritos_qs.filter(servico__titulo__icontains=query)
-
-    # Extrai os serviços favoritos já filtrados
     favoritos = [fav.servico for fav in favoritos_qs]
-
     return render(request, Area_usuario + 'favoritos.html', {
-        'pagina': {
-            'name': 'Favoritados',
-            'code': 'favoritos'
-        },
+        'pagina': {'name': 'Favoritados', 'code': 'favoritos'},
         'servicos_favoritos': favoritos,
         'incluir_favoritos': [f.servico for f in Servico_favoritos.objects.filter(user=request.user)],
-        'q': query  # envia o valor da busca para o template (opcional)
+        'q': query
     })
 
 @login_required
 def amigos(request):
-
-    user = request.user; print(f'Usuário logado: {user.id}')  # Pega o usuário logado
-
-    #amigos = (Servico_favoritos.objects.filter(user=user))
-
     return render(request, Area_usuario+'amigos.html', {
-        'pagina': {
-            'name': 'Amizades',
-            'code': 'amigos'
-        },
-        #'amigos': amigos
+        'pagina': {'name': 'Amizades', 'code': 'amigos'}
     })
 
 @login_required
@@ -261,13 +313,9 @@ def home_user(request):
             avg_rating=Avg('avaliacoes__avaliacao'),
             num_ratings=Count('avaliacoes'),
         )
-        # não ordene aqui; deixe a ordenação para o filtro "ordenar"
     )
-
     filtro = ServicoFilter(request.GET, queryset=base)
     qs = filtro.qs
-
-    # se nada for passado em 'ordenar', aplica default no final:
     if "ordenar" not in request.GET:
         qs = qs.order_by("-data_criacao")
 
@@ -279,232 +327,140 @@ def home_user(request):
         'page_obj': page_obj,
         'filter': filtro,
         'q': request.GET.get('q', ''),
-        'incluir_favoritos': [
-            f.servico for f in Servico_favoritos.objects.filter(user=request.user)
-        ],
+        'incluir_favoritos': [f.servico for f in Servico_favoritos.objects.filter(user=request.user)],
     }
     return render(request, 'area_usuario/home.html', ctx)
-
 
 @login_required
 def meus_servicos(request):
     user = request.user
-    query = request.GET.get('q', '')  # Captura o termo de busca
-
-    # Busca apenas os serviços do usuário logado
+    query = request.GET.get('q', '')
     meus_servicos_qs = Servico.objects.filter(user=user).order_by('-data_criacao')
-
-    # Aplica filtro se houver busca
     if query:
         meus_servicos_qs = meus_servicos_qs.filter(titulo__icontains=query)
-
     return render(request, Area_usuario + 'meus_servicos.html', {
-        'pagina': {
-            'name': 'Meus Servicos',
-            'code': 'meus_servicos'
-        },
-        'button_info': {
-            'text': 'Editar servico',
-            'url': 'editar_servico'
-        },
+        'pagina': {'name': 'Meus Servicos', 'code': 'meus_servicos'},
+        'button_info': {'text': 'Editar servico', 'url': 'editar_servico'},
         'servicos_meus': meus_servicos_qs,
         'incluir_favoritos': [f.servico for f in Servico_favoritos.objects.filter(user=request.user)],
-        'q': query  # envia a query para o template
+        'q': query
     })
-
 
 @login_required
 def configuracoes(request):
     return render(request, Area_usuario+'settings.html', {
-        'pagina': {
-            'name': 'Configurações',
-            'code': 'configuracoes'
-        },
+        'pagina': {'name': 'Configurações', 'code': 'configuracoes'}
     })
 
-# ----------------------------
-# Paginas de servicos
-# ----------------------------
-
+# -------------------------------------------------
+# Páginas de serviço
+# -------------------------------------------------
 def servico_detalhe(request, id):
-    try:
-        servico = Servico.objects.get(id=id)
-        user = request.user if request.user.is_authenticated else None
+    servico = get_object_or_404(Servico, id=id)
+    user = request.user if request.user.is_authenticated else None
 
-        # ID do criador do anúncio
-        criador_id = servico.user.id if servico.user else None
+    criador_id = servico.user.id if servico.user else None
+    pode_conversar = bool(user and servico.user and user.id != servico.user.id)
 
-        # Evita que o criador fale consigo mesmo
-        pode_conversar = user and servico.user and user.id != servico.user.id
-
-        # Registra visualização
-        Servico_visualizacao.objects.create(
-            client=user,
-            servico=servico,
-        )
-
-    except Servico.DoesNotExist:
-        return render(request, '404.html', status=404)
-
-    return render(
-        request,
-        'servico_detalhe.html',
-        {
-            'servico': servico,
-            'criador_id': criador_id,
-            'pode_conversar': pode_conversar,
-        }
+    Servico_visualizacao.objects.create(
+        client=user,
+        servico=servico,
+        ip_address=request.META.get("REMOTE_ADDR")
     )
+
+    return render(request, 'servico_detalhe.html', {
+        'servico': servico,
+        'criador_id': criador_id,
+        'pode_conversar': pode_conversar,
+    })
 
 @login_required(login_url='login')
 def cadastro_de_servico(request):
-
-    user = request.user; # print(f'Usuário logado: {user.id}')  # Pega o usuário logado
-
-    if request.method == 'POST': #* Verifica se o método é POST (ou seja, se o formulário foi enviado)
-
-        send_servico(request,user) # Envia os dados do formulario para o banco de dados
-
+    if request.method == 'POST':
+        send_servico(request, request.user)
         return redirect('/home')
-
-    return render(request, Area_usuario+'cadastro_de_servico.html',{
-        'pagina': {
-            'name': 'Cadastro de servico',
-            'code': 'cadastro_de_servico'
-        },
+    return render(request, Area_usuario+'cadastro_de_servico.html', {
+        'pagina': {'name': 'Cadastro de servico', 'code': 'cadastro_de_servico'},
     })
 
 @login_required(login_url='login')
 def editar_servico(request, id):
-    
-    try:
-        servico = Servico.objects.get(id=id); print(f'Servico: {servico}') # Pega o servico a ser editado
-    except Servico.DoesNotExist: # Erro, caso não consiga puxar o servico
-        return render(request, '404.html', status=404)  # ou crie um template customizado
-
-    sender_page = {
-        'pagina': {
-            'name': 'Editar servico',
-        },
-        'servico': servico
-    }
-
-    if request.method == 'POST': #* Verifica se o método é POST (ou seja, se o formulário foi enviado)
-        user = request.user; print(f'Usuário logado: {user.id}')  # Pega o usuário logado
-        send_servico(request,user,servico) # Envia os dados do formulario para o banco de dados
+    servico = get_object_or_404(Servico, id=id)
+    sender_page = {'pagina': {'name': 'Editar servico'}, 'servico': servico}
+    if request.method == 'POST':
+        send_servico(request, request.user, servico)
         return redirect('/home')
+    return render(request, Area_usuario+'cadastro_de_servico.html', sender_page)
 
-    else:
-        return render(request, Area_usuario+'cadastro_de_servico.html', sender_page)
-    
-def send_servico(request,user,servico=None):
+def send_servico(request, user, servico=None):
+    form = request.POST.dict()
 
-    print(f'Usuário logado: {user.id}')  # Pega o usuário logado
-    
-    #* Intepreta os dados do formulario
-    form = request.POST.dict(); # print('Form: I', form) # Dados do formulário
-    imagem_p = request.FILES.get('input_image')  # Obtém o arquivo enviado pelo formulário
-        
-    #print('Imagem:', imagem_p)
-    if imagem_p is not None:
-        form['imagem_p'] = imagem_p
-    else:
-        del form['input_image']
-        
-    # comprimindo info, permitindo facil alteracao e restruturacao futura
+    # imagem
+    if 'input_image' in request.FILES:
+        form['imagem_p'] = request.FILES['input_image']
+    form.pop('input_image', None)
+    form.pop('csrfmiddlewaretoken', None)
+
+    # atendimento
     form['atendimento'] = {
-        'presencial': form.get('presencial') or False,
-        'remoto': form.get('remoto') or False,
-        'endereco': form.get('endereco') or "", # sera necessario fazer um dicionario mais completo de enderenco (Requer front)
+        'presencial': request.POST.get('presencial') == 'on',
+        'remoto': request.POST.get('remoto') == 'on',
+        'endereco': request.POST.get('endereco', ''),
     }
+    form.pop('endereco', None)
 
-    form['cancelamento'] = True if form.get('cancelamento') == 'on' else False
+    form['cancelamento'] = (request.POST.get('cancelamento') == 'on')
 
-    del form['csrfmiddlewaretoken'] # Remove o token CSRF
-    del form['endereco']
-        
-    if form.get('presencial'): del form['presencial']; 
-    if form.get('remoto'): del form['remoto']; 
-        
-    form['user'] = user; #print('Form: F', form) # Dados do formulário
+    # limpa auxiliares
+    form.pop('presencial', None)
+    form.pop('remoto', None)
+
+    form['user'] = user
 
     if servico is not None:
-        print('Editar')
-        # Atualiza os campos do serviço existente com os valores do formulário
         for chave, valor in form.items():
             setattr(servico, chave, valor)
-        servico.save()  # Salva as alterações no serviço
+        servico.save()
     else:
-        # Cria um novo serviço com os dados do formulário
         servico = Servico.objects.create(**form)
-    
-    #servico.save() # Salva o objeto Servico no banco de dados
-    
+
     return 'ok'
 
-        
-# ----------------------------
-# Login, perfil, configuracos e afins
-# ----------------------------
-
+# -------------------------------------------------
+# Auth
+# -------------------------------------------------
 def cadastro(request):
-    if request.method == 'POST': #* Verifica se o método é POST (ou seja, se o formulário foi enviado)
-
-        #print('Form:', request.POST)
-
-        #* Pega os dados do formulário e manda pro usuario
+    if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('senha')
 
-        #* verfica se a senha foi preenchida corretamente
-        if password != (request.POST.get('senha_confirmada')):
+        if password != request.POST.get('senha_confirmada'):
             return render(request, Area_login+'register.html', {'form_err': 'As senhas não coincidem.'})
 
-        #* Verifica se o usuário já existe
-        if CustomUser.objects.filter( username=username ).exists():
+        if CustomUser.objects.filter(username=username).exists():
             return render(request, Area_login+'register.html', {'form_err': 'Usuário já existe.'})
 
-        #* Cria o usuário no banco de dados
-        user = CustomUser.objects.create_user(
-            username=username,
-            password=password,
-        )
-        user.save() # Salva o usuário no banco de dados
-
-        # usuario = authenticate(request, user) #* Faz o login do usuário
-
-        # if usuario is not None:
-        #     login(request, usuario)
-        #     return redirect('home') # Redireciona para a página de login após o cadastro
-        # else:
-
+        user = CustomUser.objects.create_user(username=username, password=password)
+        user.save()
         return redirect('login')
 
-    return render(request, Area_login+'register.html') # Renderiza o template de cadastro
+    return render(request, Area_login+'register.html')
 
 def login_view(request):
     if request.method == 'POST':
-        #print('Form:', request.POST)
         username = request.POST.get('username')
         password = request.POST.get('senha')
 
-        #* Verifica se o usuário e a senha foram preenchidos
         if not username or not password:
             return render(request, Area_login+'login.html', {'form_err': 'Usuário e senha são obrigatórios.'})
-        
-        #* Autentica o usuário
+
         user = authenticate(request, username=username, password=password)
-
-        #* Verifica se o usuário existe e se a senha está correta'
         if user is not None:
-            login(request, user) #* Faz o login do usuário
-
-            #print('Me Lembre', request.POST.get('remember_me'))
-            if( (request.POST.get('remember_me')) is not None): #* define o tempo de expiração da sessão
-                request.session.set_expiry(60 * 60 * 24 * 30) # 30 dias
+            login(request, user)
+            if request.POST.get('remember_me') is not None:
+                request.session.set_expiry(60 * 60 * 24 * 30)
             else:
-                request.session.set_expiry(60 * 60 * 24 * 1) # 1 dia
-
+                request.session.set_expiry(60 * 60 * 24 * 1)
             return redirect('/home')
         else:
             return render(request, Area_login+'login.html', {'form_err': 'Usuário ou senha inválidos'})
@@ -518,149 +474,86 @@ def logout_view(request):
 def forgot_password(request):
     if request.method == 'POST':
         email = request.POST.get('email')
-
         try:
-            user = CustomUser.objects.get(email=email)
-            # Aqui você poderia enviar email real no futuro (não vamos enviar agora)
+            _ = CustomUser.objects.get(email=email)
             mensagem = 'Se o email estiver correto, enviaremos instruções para redefinir a senha.'
             return render(request, Area_login+'forgot_password.html', {'mensagem': mensagem})
         except CustomUser.DoesNotExist:
             erro = 'Email não encontrado no sistema.'
             return render(request, Area_login+'forgot_password.html', {'erro': erro})
-
     return render(request, Area_login+'forgot_password.html')
 
-@login_required
-def perfil(request):
-
-    user = request.user; print(user)  # Pega o usuário logado
-
-    if request.method == 'POST': #* Verifica se o método é POST (ou seja, se o formulário foi enviado)
-
-        print('Form:', request.POST)
-
-        user.nome = request.POST.get('nome') or "" # Pega o nome do formulário e manda pro usuario
-        user.email = request.POST.get('email') # Pega o email do formulário e manda pro usuario
-        
-        imagem_p = request.FILES.get('input_image')  # Obtém o arquivo enviado pelo formulário
-
-        print('Imagem:', imagem_p)
-        if imagem_p is not None:
-            user.profile_image = imagem_p # Salva a imagem no banco de dados
-
-        user.save() # Salva o usuário no banco de dados
-
-        return render(request, Area_login+'perfil.html', {
-            'pagina': {
-                'intro': False
-            },
-            'form_info': {
-                'msg': 'Perfil atualizado com sucesso!', # Mesagem na tela
-                'type': 'success' # class do Bootstrap
-            }
-        }) # Renderiza o template de perfil
-
-
-    return render(request, Area_login+'perfil.html',{
-        'pagina': {
-            'intro': False
-        }
-    })
-
-@login_required
-def favoritar(request):#* Adiciona um item aos favoritos do usuário
-
-    if request.method == "POST" and "favoritar" in request.POST:
-        user = request.user; print(f'Usuário logado: {user.id}')  # Pega o usuário logad
-        print('Form:', request.POST)
-
-        favoritar = (request.POST.get('favoritar')).split(','); print('Favoritar:', favoritar) # Pega o id do servico a ser favoritado
-
-        if favoritar[1] == 'True': # Favoritar item no banco de dados
-            print('Favoritar:', favoritar[0])
-            try:
-                servico = Servico.objects.get(id=favoritar[0]) # Pega o servico a ser favoritado
-                favo = Servico_favoritos.objects.create(user=user, servico=servico) # Cria o objeto Servico_favoritos com os dados do formulário
-                print('\n✅ Favoritado:', favo)
-            except Exception as e: # Erro, caso não consiga puxar o servico
-                print('\n❌ Erro ao favoritar o servico:', favoritar[0])
-                print('\n⚠️     Err:', e)
-        else:
-            print('Desfavoritar:', favoritar[0])
-            try:
-                favo = Servico_favoritos.objects.get(user=user, servico__id=favoritar[0]) # Pega o servico a ser desfavoritado
-                favo.delete() # Deleta o objeto Servico_favoritos do banco de dados
-                print('\n✅ Desfavoritado:', favo)
-            except Exception as e: # Erro, caso não consiga puxar o servico
-                print('\n❌ Erro ao desfavoritar o servico:', favoritar[0])
-                print('\n⚠️     Err:', e)
-
-        url_origem = request.META.get('HTTP_REFERER', '/'); # print('URL de origem:', url_origem) # Pega a URL de origem
-        return redirect(url_origem)
-    
-    return render(request, '404.html', status=404) # Retorna erro 404 se não for um POST
-
-
-# CHAT Views
+# -------------------------------------------------
+# Chat
+# -------------------------------------------------
 @login_required
 def direct_chat(request, user_id):
     other = get_object_or_404(CustomUser, id=user_id)
 
-    # procura thread já existente entre os dois usuários
+    # normaliza para evitar duplicata (A,B == B,A)
     thread = DirectThread.objects.filter(
         Q(user1=request.user, user2=other) | Q(user1=other, user2=request.user)
     ).first()
     if not thread:
-        thread = DirectThread.objects.create(user1=request.user, user2=other)
+        thread = DirectThread.get_or_create_thread(request.user, other)
 
-    # se enviou mensagem
     if request.method == "POST":
         content = request.POST.get("message")
         if content:
             DirectMessage.objects.create(thread=thread, sender=request.user, content=content)
         return redirect("direct_chat", user_id=other.id)
 
-    messages = thread.messages.order_by("created_at")
+    msgs = thread.messages.order_by("created_at")
 
-    # ⚡️ se veio com ?ajax=1, devolve só as mensagens (sem layout)
     if request.GET.get("ajax"):
-        return render(request, "chat/_messages.html", {"messages": messages})
+        return render(request, "chat/_messages.html", {"messages": msgs})
 
-    return render(request, "chat/direct_chat.html", {
-        "other": other,
-        "messages": messages
-    })
+    return render(request, "chat/direct_chat.html", {"other": other, "messages": msgs})
 
 @login_required
 def minhas_conversas(request):
     user = request.user
-
-    # Threads onde o user é o "dono do post" (recebidas)
     recebidas = DirectThread.objects.filter(user1=user)
-
-    # Threads onde o user iniciou a conversa em um post de outro usuário
     iniciadas = DirectThread.objects.filter(user2=user)
 
-    lista_recebidas = []
-    for t in recebidas:
-        other = t.user2  # visitante
-        lista_recebidas.append({
-            "thread": t,
-            "other": other,
-            "last_message": t.messages.last()
-        })
+    lista_recebidas = [{
+        "thread": t,
+        "other": t.user2,
+        "last_message": t.messages.last()
+    } for t in recebidas]
 
-    lista_iniciadas = []
-    for t in iniciadas:
-        other = t.user1  # dono do post
-        lista_iniciadas.append({
-            "thread": t,
-            "other": other,
-            "last_message": t.messages.last()
-        })
+    lista_iniciadas = [{
+        "thread": t,
+        "other": t.user1,
+        "last_message": t.messages.last()
+    } for t in iniciadas]
 
     return render(request, "chat/minhas_conversas.html", {
         "recebidas": lista_recebidas,
         "iniciadas": lista_iniciadas,
         "pagina": {"code": "minhas_conversas", "name": "Minhas Conversas"},
     })
+
+@login_required
+def favoritar(request):
+    if request.method == "POST" and "favoritar" in request.POST:
+        user = request.user
+        raw = request.POST.get('favoritar', '')
+        parts = raw.split(',')
+        if len(parts) != 2:
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        servico_id, marcar_str = parts
+        marcar = (marcar_str == 'True')
+
+        servico = get_object_or_404(Servico, id=servico_id)
+
+        if marcar:
+            # evita erro por constraint única
+            _, _created = Servico_favoritos.objects.get_or_create(user=user, servico=servico)
+        else:
+            Servico_favoritos.objects.filter(user=user, servico=servico).delete()
+
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    return render(request, '404.html', status=404)

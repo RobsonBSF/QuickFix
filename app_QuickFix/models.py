@@ -1,43 +1,40 @@
-
-#! Biblitecas do Django
+# app_QuickFix/models.py
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
-
-#! Biblitecas do Python
-import uuid # Para gerar _id únicos
-
-#! Não esquecer para manipular os ForeignKey, tem que mapear tbm no "mysql_sync.py"
+import uuid
 
 # ----------------------------
-# Modelo de Usuário Customizado
+# Usuário
 # ----------------------------
-class CustomUserManager(BaseUserManager): # Atenticação de usuário customizada
+class CustomUserManager(BaseUserManager):
     def create_user(self, username, password=None, **extra_fields):
         if not username:
             raise ValueError("O campo 'username' é obrigatório.")
         user = self.model(username=username, **extra_fields)
-        user.set_password(password)  # ← gera hash de forma segura
+        user.set_password(password)
         user.save()
         return user
 
-class CustomUser(AbstractBaseUser): # Modelo de usuário customizado
+    def create_superuser(self, username, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        if not password:
+            raise ValueError("Superusuário requer senha.")
+        return self.create_user(username, password, **extra_fields)
 
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     username = models.CharField(max_length=150, unique=True)
-    nome = models.CharField(max_length=150)
-    email = models.EmailField(blank=True, null=True)  # apenas se quiser
-    
-    profile_image = models.ImageField(upload_to='perfil', blank=True, null=True)  # Campo para imagem
+    nome = models.CharField(max_length=150, blank=True, default="")
+    email = models.EmailField(blank=True, null=True)
 
-    #! Campos sistema
+    profile_image = models.ImageField(upload_to='perfil', blank=True, null=True)
+
     data_criacao = models.DateTimeField(auto_now_add=True)
 
-    #! Campos obrigatorios Django # Campo padrão do Django
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -45,192 +42,192 @@ class CustomUser(AbstractBaseUser): # Modelo de usuário customizado
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
+
     class Meta:
-        db_table = 'Usuarios'  # Nome exato da tabela no MySQL
+        db_table = 'Usuarios'
 
     def __str__(self):
-        return f" ID: {self.id} \n Username: {self.username}"
+        return self.username
 
 # ----------------------------
-# Modelo de Serviço
+# Serviço
 # ----------------------------
 class Servico(models.Model):
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    status = models.CharField(max_length=1, default='A') #* A = Ativo, I = Inativo/Desativado
+    status = models.CharField(max_length=1, default='A')  # A/I
 
-    # Relacionamento com o modelo Servico
     user = models.ForeignKey(
-        CustomUser, 
+        settings.AUTH_USER_MODEL,
         related_name='servicos',
-        on_delete=models.CASCADE,  # Deleta os servicos se o usuario for deletado
-        db_constraint=True 
+        on_delete=models.CASCADE,
+        db_constraint=True
     )
 
-    titulo = models.CharField(max_length=255)
-    categoria = models.TextField(blank=True, null=True)
+    titulo = models.CharField(max_length=255, db_index=True)
+    categoria = models.CharField(max_length=255, blank=True, null=True)
     descricao = models.TextField(blank=True, null=True)
     tempo_estimado = models.IntegerField(default=0)
-    preco = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-    atendimento = models.JSONField(blank=True, null=True)
+    preco = models.DecimalField(max_digits=10, decimal_places=2, null=True, db_index=True)
+    atendimento = models.JSONField(blank=True, null=True)  # {presencial, remoto, endereco}
     requisitos = models.TextField(blank=True, null=True, default="")
     cancelamento = models.BooleanField(default=False)
 
-    imagem_p = models.ImageField(upload_to='servicos', blank=True, null=True)  # Campo para imagem
+    imagem_p = models.ImageField(upload_to='servicos', blank=True, null=True)
 
-    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_criacao = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
-        db_table = 'Servicos'  # Nome exato da tabela no MySQL
+        db_table = 'Servicos'
+        indexes = [
+            models.Index(fields=['status', 'data_criacao']),
+            models.Index(fields=['titulo']),
+            models.Index(fields=['preco']),
+        ]
 
     def __str__(self):
         return self.titulo
-    
-class Servico_visualizacao(models.Model):
 
+# ----------------------------
+# Visualizações
+# ----------------------------
+class Servico_visualizacao(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    # Relacionamento opcional com o modelo CustomUser (usuário autenticado)
     client = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.SET_NULL,  # Define como NULL se o usuário for deletado
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
         related_name='visualizado',
-        null=True,  # Permite que seja nulo
-        blank=True
+        null=True, blank=True
     )
-
-    # Relacionamento com o modelo Servico
     servico = models.ForeignKey(
-        Servico, 
-        on_delete=models.CASCADE, # deleta visualizaão se servico for deletado
-        related_name='visualicacoes'
+        'app_QuickFix.Servico',
+        on_delete=models.CASCADE,
+        related_name='visualizacoes'          # <- corrigido (antes: 'visualicacoes')
     )
 
-    # Campo para armazenar o IP do visitante (para anônimos)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
-
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'Servico_visualizacao'  # Nome exato da tabela no MySQL
+        db_table = 'Servico_visualizacao'
+        indexes = [models.Index(fields=['data_criacao'])]
 
     def __str__(self):
-        if self.client:
-            return f"Visualização por {self.client.username} no serviço {self.servico.titulo}"
-        return f"Visualização anônima (IP: {self.ip_address}) no serviço {self.servico.titulo}"
+        who = self.client.username if self.client else f"IP {self.ip_address}"
+        return f"Visualização por {who} em {self.servico.titulo}"
 
+# ----------------------------
+# Avaliações
+# ----------------------------
 class Servico_avaliacao(models.Model):
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     client = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.SET_NULL,  # Define como NULL se o usuário for deletado
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
         related_name='avaliacao_feitas',
-        null=True,  # Permite que seja nulo
-        blank=True
+        null=True, blank=True
     )
-
-    # Relacionamento com o modelo Servico
     profissional = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.CASCADE,  # Deleta as avalicacoes se o profissional for deletado
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='avaliacoes_recebidas'
     )
-
-    # Relacionamento com o modelo Servico
     servico = models.ForeignKey(
-        Servico, 
-        on_delete=models.SET_NULL,  # Define como NULL se o servico for deletado
+        'app_QuickFix.Servico',
+        on_delete=models.SET_NULL,
         related_name='avaliacoes',
-        null=True,  # Permite que seja nulo
-        blank=True
+        null=True, blank=True
     )
 
-    # Campo de avaliação com valores entre 1 e 5
-    avaliacao = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
-
+    avaliacao = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'Servico_avaliacao'  # Nome exato da tabela no MySQL
+        db_table = 'Servico_avaliacao'
+        indexes = [models.Index(fields=['data_criacao'])]
 
     def __str__(self):
-        if self.client:
-            return f"Avaliação: {self.avaliacao} para {self.servico.titulo} por {self.client.username}"
-        return f"Avaliação anônima: {self.avaliacao} para {self.servico.titulo}"
-    
+        who = self.client.username if self.client else "Anônimo"
+        title = self.servico.titulo if self.servico else "Serviço"
+        return f"{who} → {title}: {self.avaliacao}"
+
+# ----------------------------
+# Contratação (para o PIX)
+# ----------------------------
 class Servico_contratado(models.Model):
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    # Relacionamento com o modelo Usuario
+
     user = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.SET_NULL,  # Define como NULL se o Usuario for deletado
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
         related_name='servicos_contratados',
-        blank=True,
-        null=True,
+        null=True, blank=True,
+    )
+    servico = models.ForeignKey(
+        'app_QuickFix.Servico',
+        on_delete=models.SET_NULL,
+        related_name='contratados',
+        null=True, blank=True, default=None
     )
 
-    #! Modificar: Salvar informacoes do servico, caso ele seja excluido
-    # Relacionamento com o modelo Servico
-    servico = models.ForeignKey(
-        Servico, 
-        on_delete=models.SET_NULL,  # Define como NULL se o servico for deletado
-        related_name='contratados',
-        blank=True,
-        null=True,
-        default=None
+    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    txid = models.CharField(max_length=35, db_index=True, blank=True, default="")  # (até 25 no BR Code)
+
+    STATUS_CHOICES = (
+        ('PENDENTE', 'Pendente'),
+        ('CONFIRMADO', 'Confirmado'),
+        ('CANCELADO', 'Cancelado'),
     )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='CONFIRMADO')
 
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'Servico_contratados'  # Nome exato da tabela no MySQL
+        db_table = 'Servico_contratados'
+        ordering = ['-data_criacao']
+        indexes = [models.Index(fields=['status', 'data_criacao'])]
 
     def __str__(self):
-        user_str = self.user.username if self.user else "Usuário desconhecido"
-        servico_str = self.servico.titulo if self.servico else "Serviço desconhecido"
-        return f"Usuario: {user_str} contratou {servico_str}"
-    
-class Servico_favoritos(models.Model):
+        u = self.user.username if self.user else "Usuário"
+        s = self.servico.titulo if self.servico else "Serviço"
+        return f"{u} contratou {s} [{self.status}]"
 
+# ----------------------------
+# Favoritos
+# ----------------------------
+class Servico_favoritos(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    # Relacionamento com o modelo Usuario
+
     user = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.CASCADE,  # Deleta se o usuario for deletado
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='servicos_favoritos'
     )
-
-    # Relacionamento com o modelo Servico
     servico = models.ForeignKey(
-        Servico, 
-        on_delete=models.CASCADE,  # Deleta se serviço for deletado
+        'app_QuickFix.Servico',
+        on_delete=models.CASCADE,
         related_name='favoritos'
     )
 
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'Servico_favoritos'  # Nome exato da tabela no MySQL
+        db_table = 'Servico_favoritos'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'servico'], name='uniq_fav_user_servico')
+        ]
+        indexes = [models.Index(fields=['data_criacao'])]
 
     def __str__(self):
-        return f"Usuario: {self.user.username} favoritou {self.servico.titulo}"
-    
-# Chat models
-User = settings.AUTH_USER_MODEL
+        return f"{self.user.username} ♥ {self.servico.titulo}"
 
-
-User = get_user_model()
-
+# ----------------------------
+# Chat
+# ----------------------------
 class DirectThread(models.Model):
-    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="threads_as_user1")
-    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="threads_as_user2")
+    user1 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="threads_as_user1")
+    user2 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="threads_as_user2")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -238,18 +235,15 @@ class DirectThread(models.Model):
 
     @classmethod
     def get_or_create_thread(cls, user1, user2):
-        """Retorna a thread existente entre dois usuários ou cria uma nova"""
-        # sempre manter ordem estável para evitar duplicados
-        if user1.id > user2.id:
+        # ordem estável para evitar duplicados; compare UUIDs como string
+        if str(user1.id) > str(user2.id):
             user1, user2 = user2, user1
-
-        thread, created = cls.objects.get_or_create(user1=user1, user2=user2)
+        thread, _ = cls.objects.get_or_create(user1=user1, user2=user2)
         return thread
-
 
 class DirectMessage(models.Model):
     thread = models.ForeignKey(DirectThread, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
 
