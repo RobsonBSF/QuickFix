@@ -1,6 +1,10 @@
 # app_QuickFix/views.py
 import re
 from decimal import Decimal, InvalidOperation
+from django.db.models import Q, Avg
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import DirectThread, DirectMessage, CustomUser
+from uuid import UUID
 
 from django.conf import settings
 from django.contrib import messages
@@ -280,6 +284,39 @@ def dashboard(request):
     return render(request, Area_usuario+'dashboard_user.html', {
         'pagina': {'name': 'Painel de Controle', 'code': 'dashboard'},
         'visualizacoes': visualizacoes
+@login_required
+def dashboard(request):
+    user = request.user
+    print(f'Usuário logado: {user.id}')  
+
+    # Quantidade de visualizações dos serviços do usuário
+    visualizacoes = Servico_visualizacao.objects.filter(servico__user=user).count()
+
+    # Mensagens recebidas pelo usuário
+    mensagens = DirectMessage.objects.filter(
+        thread__user1=user
+    ).exclude(sender=user).count()
+
+    # Nota média das avaliações
+    nota_media = Servico_avaliacao.objects.filter(servico__user=user).aggregate(
+        avg=Avg("avaliacao")
+    )["avg"] or 0
+
+    # Taxa de aceitação (placeholder, futuramente com base em propostas aceitas)
+    taxa_aceitacao = 0  
+
+    return render(request, Area_usuario + 'dashboard_user.html', {
+        'pagina': {
+            'name': 'Painel de Controle',
+            'code': 'dashboard'
+        },
+        'visualizacoes': visualizacoes,
+        'mensagens': mensagens,
+        'nota_media': round(nota_media, 1),
+        'taxa_aceitacao': taxa_aceitacao,
+        # placeholders
+        'novas_propostas': None,
+        'pagamentos_pendentes': None,
     })
 
 @login_required

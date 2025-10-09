@@ -1,4 +1,5 @@
 # app_QuickFix/models.py
+#! Biblitecas do Django
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
