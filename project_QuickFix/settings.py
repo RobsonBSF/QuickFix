@@ -26,6 +26,13 @@ SECRET_KEY = 'django-insecure-rsioxt(j*vq71tjp9jx^u(j4(4*^n=g)4!cr!886)mj6=+sss9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
+# Pagamento via PIX (MVP)
+# -------------------------------------------------
+PIX_KEY = "seu-email-ou-chave-aleatoria@pix.com.br"   # chave Pix (e-mail, aleatória, tel, CPF/CNPJ)
+PIX_MERCHANT_NAME = "QUICKFIX LTDA"                   # máx. 25 chars (sem acento)
+PIX_MERCHANT_CITY = "CAMPINAS"                        # sem acento, máx. 15 chars
+
 ALLOWED_HOSTS = []
 
 
@@ -41,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',      # ✅ ESSENCIAL: armazena sessões (como login)
     'widget_tweaks',                # ✅ Para estilizar os widgets do Django (ex: campos de formulário)
     'app_QuickFix',
+    'django_filters',# ✅ Para filtros avançados
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,71 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block content %}
+<form method="get" class="row g-2 align-items-end mb-4">
+
+  <div class="col-md-3">
+    <label class="form-label"><i class="fa-solid fa-magnifying-glass"></i> Buscar</label>
+    {{ filter.form.q }}
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label"><i class="fa-solid fa-filter"></i> Status</label>
+    {{ filter.form.status }}
+  </div>
+
+  <div class="col-md-3">
+    <label class="form-label"><i class="fa-solid fa-layer-group"></i> Categoria</label>
+    {{ filter.form.categoria }}
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label"><i class="fa-solid fa-sack-dollar"></i> Preço mín.</label>
+    {{ filter.form.preco_min }}
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label"><i class="fa-solid fa-sack-dollar"></i> Preço máx.</label>
+    {{ filter.form.preco_max }}
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label"><i class="fa-solid fa-clock"></i> Tempo máx. (min)</label>
+    {{ filter.form.tempo_max }}
+  </div>
+
+  <div class="col-md-2">
+    <label class="form-label"><i class="fa-solid fa-star"></i> Nota mínima</label>
+    {{ filter.form.nota_min }}
+  </div>
+
+  <div class="col-md-3 d-flex gap-3">
+    <div class="form-check">
+      {{ filter.form.presencial }} <label class="form-check-label">Presencial</label>
+    </div>
+    <div class="form-check">
+      {{ filter.form.remoto }} <label class="form-check-label">Remoto</label>
+    </div>
+    <div class="form-check">
+      {{ filter.form.cancelamento }} <label class="form-check-label">Cancelamento</label>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <label class="form-label"><i class="fa-solid fa-arrow-down-short-wide"></i> Ordenar</label>
+    {{ filter.form.ordenar }}
+  </div>
+
+  <div class="col-md-2 d-flex gap-2">
+    <button class="btn btn-primary flex-grow-1" type="submit">
+      <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+    </button>
+    <a class="btn btn-outline-secondary" href="?">
+      <i class="fa-solid fa-rotate-right"></i>
+    </a>
+  </div>
+</form>
+  
+
+
+{% endblock %} 
