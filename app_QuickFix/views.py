@@ -20,7 +20,7 @@ from django.views.decorators.http import require_http_methods
 
 from .models import (
     Servico, Servico_favoritos, Servico_visualizacao, Servico_contratado,
-    DirectThread, DirectMessage, CustomUser
+    DirectThread, DirectMessage, CustomUser, Servico_avaliacao
 )
 from .filters import ServicoFilter
 
@@ -284,6 +284,7 @@ def dashboard(request):
     return render(request, Area_usuario+'dashboard_user.html', {
         'pagina': {'name': 'Painel de Controle', 'code': 'dashboard'},
         'visualizacoes': visualizacoes
+    })
 @login_required
 def dashboard(request):
     user = request.user
