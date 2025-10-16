@@ -163,8 +163,8 @@
     <div class="sidebar">
       <a href="{% url 'home' %}">
         <h4 class="mb-4">QuickFix</h4></a>
-        <a href="#"><i class="fas fa-user-friends"></i> Home</a>
-        <a href="#"><i class="fas fa-heart"></i> Favoritos</a>
+        <a href="{% url 'home_user' %}"><i class="fas fa-user-friends"></i> Home</a>
+        <a href="{% url 'favoritos' %}"><i class="fas fa-heart"></i> Favoritos</a>
         <a href="{% url 'dashboard' %}" class="active"><i class="fas fa-chart-line"></i> Dashboard</a>
         <a href="{% url 'meus_servicos' %}"><i class="fas fa-list"></i> Meus Serviços</a>
         <a href="{% url 'minhas_conversas' %}"><i class="fas fa-comments"></i> Minhas Conversas</a>

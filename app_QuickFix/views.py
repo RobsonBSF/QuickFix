@@ -551,18 +551,20 @@ def direct_chat(request, user_id):
 @login_required
 def minhas_conversas(request):
     user = request.user
-    recebidas = DirectThread.objects.filter(user1=user)
-    iniciadas = DirectThread.objects.filter(user2=user)
+    # Quem iniciou a conversa (user1 = usuário logado)
+    iniciadas = DirectThread.objects.filter(user1=user)
+    # Quem recebeu a conversa (user2 = usuário logado)
+    recebidas = DirectThread.objects.filter(user2=user)
 
     lista_recebidas = [{
         "thread": t,
-        "other": t.user2,
+        "other": t.user1,  # remetente
         "last_message": t.messages.last()
     } for t in recebidas]
 
     lista_iniciadas = [{
         "thread": t,
-        "other": t.user1,
+        "other": t.user2,  # destinatário
         "last_message": t.messages.last()
     } for t in iniciadas]
 

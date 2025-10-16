@@ -1,41 +1,111 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+  .section-title {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+
+  .card-conversa {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: 0.3s;
+    background-color: #fff;
+    padding: 20px;
+  }
+
+  .card-conversa:hover {
+    transform: translateY(-5px);
+  }
+
+  .card-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .card-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+
+  .btn-ver-chat {
+    background-color: #ffc107;
+    color: #212529;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    width: 100%;
+    transition: all 0.3s;
+  }
+
+  .btn-ver-chat:hover {
+    background-color: #e0a800;
+  }
+
+  .text-muted {
+    margin-left: 10px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
+  <h2 class="mb-4 text-center">Minhas Conversas</h2>
 
-  <h2>Minhas Conversas</h2>
+  <div class="container">
 
-  <h3>📥 Recebidas</h3>
-  {% if recebidas %}
-    <ul>
-      {% for c in recebidas %}
-        <li>
-          <a class="btn btn-outline-primary" href="{% url 'direct_chat' c.other.id %}">
-            Conversa com {{ c.other.username }}
-          </a>
-          {% if c.last_message %}
-            - Última: {{ c.last_message.content|truncatechars:40 }}
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Nenhuma conversa recebida.</p>
-  {% endif %}
+    <!-- Conversas Recebidas -->
+    <h4 class="section-title"> Recebidas</h4>
+    <div class="row g-4">
+      {% if recebidas %}
+        {% for c in recebidas %}
+          <div class="col-md-4">
+            <div class="card-conversa">
+              <h5 class="card-title">{{ c.other.username }}</h5>
+              {% if c.last_message %}
+                <p class="card-text">Última: {{ c.last_message.content|truncatechars:50 }}</p>
+              {% else %}
+                <p class="card-text text-muted">Nenhuma mensagem ainda.</p>
+              {% endif %}
+              <a href="{% url 'direct_chat' c.other.id %}" class="btn btn-ver-chat">
+                Abrir Chat
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted">Nenhuma conversa recebida.</p>
+      {% endif %}
+    </div>
 
-  <h3>📤 Iniciadas</h3>
-  {% if iniciadas %}
-    <ul>
-      {% for c in iniciadas %}
-        <li>
-          <a class="btn btn-outline-success" href="{% url 'direct_chat' c.other.id %}">
-            Conversa com {{ c.other.username }}
-          </a>
-          {% if c.last_message %}
-            - Última: {{ c.last_message.content|truncatechars:40 }}
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Nenhuma conversa iniciada.</p>
-  {% endif %}
+    <!-- Conversas Iniciadas -->
+    <h4 class="section-title"> Iniciadas</h4>
+    <div class="row g-4">
+      {% if iniciadas %}
+        {% for c in iniciadas %}
+          <div class="col-md-4">
+            <div class="card-conversa">
+              <h5 class="card-title">{{ c.other.username }}</h5>
+              {% if c.last_message %}
+                <p class="card-text">Última: {{ c.last_message.content|truncatechars:50 }}</p>
+              {% else %}
+                <p class="card-text text-muted">Nenhuma mensagem ainda.</p>
+              {% endif %}
+              <a href="{% url 'direct_chat' c.other.id %}" class="btn btn-ver-chat">
+                Abrir Chat
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted">Nenhuma conversa iniciada.</p>
+      {% endif %}
+    </div>
+
+  </div>
 {% endblock %}
