@@ -16,7 +16,7 @@ urlpatterns = [
     path('cadastro/', views.cadastro, name='cadastro'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('perfil/', views.perfil, name='perfil'),
+    path('perfil/', views.perfil, name='perfil'),  # ← REPOSTO
 
     # Área do usuário
     path('dashboard/', views.dashboard, name='dashboard'),

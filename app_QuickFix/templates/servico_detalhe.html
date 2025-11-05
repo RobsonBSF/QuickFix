@@ -88,10 +88,21 @@
 
     <p class="servico-preco">R$ {{ servico.preco }}</p>
 
+    {% url 'servico_checkout_pix' servico_id=servico.id as checkout_url %}
     <div class="mt-4">
-      <a href="#" class="btn btn-contratar">
-        <i class="fas fa-handshake"></i> Contratar serviço
-      </a>
+      {% if request.user.is_authenticated %}
+        {% if request.user.id != servico.user.id %}
+          <a href="{{ checkout_url }}" class="btn btn-contratar">
+            <i class="fas fa-handshake"></i> Contratar serviço
+          </a>
+        {% else %}
+          <button class="btn btn-secondary" disabled>Você é o criador deste anúncio</button>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'login' %}?next={{ checkout_url|urlencode }}" class="btn btn-contratar">
+          <i class="fas fa-lock"></i> Entrar para contratar
+        </a>
+      {% endif %}
     </div>
 
     {% if pode_conversar %}

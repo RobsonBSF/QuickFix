@@ -1,0 +1,67 @@
+{% extends "area_usuario/base.html" %}
+{% load static %}
+
+{% block title %}Pagamento PIX - {{ servico.titulo }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .pix-card {max-width: 720px; margin:auto; background:var(--card-bg,#fff);
+    border-radius:12px; padding:28px; box-shadow:0 8px 24px rgba(0,0,0,.06);}
+  .pix-grid {display:grid; grid-template-columns: 1fr 1fr; gap:24px;}
+  .qr-box {display:flex; align-items:center; justify-content:center; border:1px solid #eee;
+    border-radius:12px; padding:16px; min-height:260px;}
+  .code-box {background:#f8f9fa; border:1px dashed #ced4da; border-radius:8px; padding:12px;}
+  .btn-warning{background:#ffc107;border:none;color:#212529;font-weight:600}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="pix-card">
+    <h3 class="mb-1">Pagamento via PIX</h3>
+    <p class="text-muted mb-3">{{ servico.titulo }}</p>
+
+    <div class="pix-grid">
+      <div class="qr-box">
+        <div id="qrcode"></div>
+      </div>
+      <div>
+        <p class="mb-2"><strong>Valor:</strong> R$ {{ servico.preco }}</p>
+        <p class="mb-2"><strong>TXID:</strong> {{ txid }}</p>
+
+        <label class="form-label mt-3">Copia e Cola</label>
+        <div class="code-box" id="ccode" style="word-break:break-all">{{ pix_copia_cola }}</div>
+        <button class="btn btn-outline-secondary mt-2" id="btnCopy">Copiar código</button>
+
+        <form method="post" action="{{ confirm_url }}" class="mt-4">
+          {% csrf_token %}
+          <input type="hidden" name="txid" value="{{ txid }}">
+          <button type="submit" class="btn btn-warning w-100">
+            Já paguei (confirmar)
+          </button>
+        </form>
+
+        <a href="{{ voltar_url }}" class="btn btn-link mt-2 d-block">Voltar ao serviço</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-J7e1Qv7n4qv9f3FqQJb5QmA3t8J9o2S8n8kz8s2mta7mV8WZ3mXQ3j1o9j8p9m1T2n9cQWcYB9o1g6pS9qYQ9A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  // Gera QR Code a partir do BR Code PIX
+  new QRCode(document.getElementById("qrcode"), {
+    text: "{{ pix_brcode|escapejs }}",
+    width: 240,
+    height: 240
+  });
+
+  // Copiar copia-e-cola
+  document.getElementById("btnCopy").addEventListener("click", function() {
+    const txt = document.getElementById("ccode").innerText;
+    navigator.clipboard.writeText(txt).then(function(){
+      alert("Código PIX copiado!");
+    });
+  });
+</script>
+{% endblock %}
