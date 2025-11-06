@@ -12,7 +12,6 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
-from django.db import IntegrityError
 from django.db.models import Q, Avg, Count
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -24,9 +23,6 @@ from .models import (
 )
 from .filters import ServicoFilter
 
-# -------------------------------------------------
-# Constantes e utilitários
-# -------------------------------------------------
 CustomUser = get_user_model()
 
 Area_usuario = 'area_usuario/'
@@ -49,32 +45,37 @@ def _servico_base_queryset():
             num_ratings=Count('avaliacoes')
         )
     )
-# ---- Perfil do usuário ----
+
+
+# ---------------------------
+# Perfil
+# ---------------------------
 @login_required
 def perfil(request):
     user = request.user
 
     if request.method == 'POST':
-        # Atualiza campos básicos
         user.nome = request.POST.get('nome') or ""
-        user.email = request.POST.get('email') or user.email
+        novo_email = request.POST.get('email')
+        if novo_email is not None:
+            user.email = novo_email
 
-        # Atualiza imagem, se enviada
         imagem_p = request.FILES.get('input_image')
         if imagem_p:
             user.profile_image = imagem_p
 
         user.save()
         messages.success(request, 'Perfil atualizado com sucesso!')
-        return redirect('perfil')  # volta para a mesma rota
+        return redirect('perfil')
 
-    # GET
-    return render(request, Area_login + 'perfil.html', {
+    # usa o template correto:
+    return render(request, 'area_usuario/perfil.html', {
         'pagina': {'intro': False}
     })
-# -------------------------------------------------
-# PIX helpers (BR Code estático)
-# -------------------------------------------------
+
+# ---------------------------
+# PIX helpers
+# ---------------------------
 def _emv(field_id: str, value: str) -> str:
     return f"{field_id}{len(value):02d}{value}"
 
@@ -92,7 +93,8 @@ def _crc16(payload: str) -> str:
     return f"{crc:04X}"
 
 def _sanitize(s, maxlen):
-    s = re.sub(r"[^A-Za-z0-9 @\.\-]", "", (s or "")).upper()
+    import re as _re
+    s = _re.sub(r"[^A-Za-z0-9 @\.\-]", "", (s or "")).upper()
     return s[:maxlen]
 
 def build_pix_br_code(chave: str, nome: str, cidade: str, valor: Decimal, txid: str) -> str:
@@ -116,12 +118,17 @@ def build_pix_br_code(chave: str, nome: str, cidade: str, valor: Decimal, txid: 
     to_crc = payload + "6304"
     return payload + "63" + "04" + _crc16(to_crc)
 
-# -------------------------------------------------
+# ---------------------------
 # Checkout PIX
-# -------------------------------------------------
+# ---------------------------
 @login_required
 def servico_checkout_pix(request, servico_id):
     servico = get_object_or_404(Servico, id=servico_id)
+
+    if servico.user_id == request.user.id:
+        messages.error(request, "Você não pode contratar o seu próprio serviço.")
+        return redirect('servico_detalhe', id=servico.id)
+
     txid = f"QF{str(servico.id)[:10]}"
     brcode = build_pix_br_code(
         chave=getattr(settings, "PIX_KEY", ""),
@@ -138,12 +145,17 @@ def servico_checkout_pix(request, servico_id):
         "voltar_url": reverse("servico_detalhe", kwargs={"id": servico.id}),
         "confirm_url": reverse("servico_checkout_confirm", kwargs={"servico_id": servico.id}),
     }
-    return render(request, "pagamentos/checkout_pix.html", ctx)
+    return render(request, "area_usuario/checkout_pix.html", ctx)
 
 @login_required
 @require_http_methods(["POST"])
 def servico_checkout_confirm(request, servico_id):
     servico = get_object_or_404(Servico, id=servico_id)
+
+    if servico.user_id == request.user.id:
+        messages.error(request, "Você não pode contratar o seu próprio serviço.")
+        return redirect('servico_detalhe', id=servico.id)
+
     txid = request.POST.get("txid") or f"QF{str(servico.id)[:10]}"
 
     Servico_contratado.objects.create(
@@ -154,29 +166,27 @@ def servico_checkout_confirm(request, servico_id):
         status="CONFIRMADO",
     )
 
-    # emails
     try:
         if request.user.email:
             send_mail(
                 f"Confirmação de compra - {servico.titulo}",
                 f"Olá, {request.user.username}!\nPagamento via PIX confirmado.\nValor: R$ {servico.preco:.2f}",
-                None,
-                [request.user.email],
-                fail_silently=True,
+                None, [request.user.email], fail_silently=True,
             )
         if servico.user and servico.user.email:
             send_mail(
                 f"Seu serviço foi contratado - {servico.titulo}",
                 f"{request.user.username} contratou seu serviço.",
-                None,
-                [servico.user.email],
-                fail_silently=True,
+                None, [servico.user.email], fail_silently=True,
             )
     except Exception:
         pass
 
     messages.success(request, "Pagamento confirmado! Enviamos um e-mail para você.")
     return redirect("servico_detalhe", id=servico.id)
+
+
+
 
 # -------------------------------------------------
 # Filtros e buscas
