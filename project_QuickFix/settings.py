@@ -29,8 +29,8 @@ DEBUG = True
 
 # Pagamento via PIX (MVP)
 # -------------------------------------------------
-PIX_KEY = "seu-email-ou-chave-aleatoria@pix.com.br"   # chave Pix (e-mail, aleatória, tel, CPF/CNPJ)
-PIX_MERCHANT_NAME = "QUICKFIX LTDA"                   # máx. 25 chars (sem acento)
+PIX_KEY = "bd4e46ae-23a2-473c-a9e3-52fec2944935"   # chave Pix (e-mail, aleatória, tel, CPF/CNPJ)
+PIX_MERCHANT_NAME = "Raphael Bellagama F"                   # máx. 25 chars (sem acento)
 PIX_MERCHANT_CITY = "CAMPINAS"                        # sem acento, máx. 15 chars
 
 ALLOWED_HOSTS = []

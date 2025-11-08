@@ -33,7 +33,9 @@ urlpatterns = [
     # Pagamento PIX
     path('pagamento/pix/<uuid:servico_id>/', views.servico_checkout_pix, name='servico_checkout_pix'),
     path('pagamento/pix/confirmar/<uuid:servico_id>/', views.servico_checkout_confirm, name='servico_checkout_confirm'),
-
+    path("pagamento/<uuid:contratado_id>/confirmar/", views.servico_confirmar_recebimento, name="servico_confirmar_recebimento"),
+    path("contratos/<uuid:contrato_id>/confirmar/", views.servico_confirmar_pagamento, name="servico_confirmar_pagamento"),
+    path('pagamento/<uuid:contrato_id>/confirmar/', views.servico_confirmar_pagamento, name='servico_confirmar_pagamento'),
     # Ações do front -> back
     path('favoritar/', views.favoritar, name='favoritar'),
 

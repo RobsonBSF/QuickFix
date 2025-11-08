@@ -57,6 +57,10 @@
         <form method="post">
             {% csrf_token %}
             <input type="text" name="username" placeholder="Usuario" required>
+            
+           <!-- troque enail -> email -->
+            <input type="email" name="email" placeholder="Email" required>
+
             <input type="password" name="senha" placeholder="Senha" required>
             <input type="password" name="senha_confirmada" placeholder="Confirmar Senha" required>
             <!-- <input type="text" name="cidade" placeholder="Cidade"> --> 

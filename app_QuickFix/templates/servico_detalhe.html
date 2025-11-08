@@ -112,6 +112,46 @@
     {% else %}
       <button class="btn" disabled>Você é o criador deste anúncio</button>
     {% endif %}
+    {# dentro do bloco .servico-container, onde achar adequado #}
+
+{% if request.user.is_authenticated and request.user.id == servico.user.id %}
+  <hr class="my-4">
+  <h5>Pagamentos pendentes</h5>
+
+  {# ideal: filtrar no view e passar 'pendentes' já prontos; aqui funciona também #}
+  {% with pendentes=servico.contratados.all|dictsortreversed:"data_criacao" %}
+    {% if pendentes %}
+      <div class="list-group">
+        {% for c in pendentes %}
+          {% if c.status == "PENDENTE" %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <div>
+                  <strong>Comprador:</strong>
+                  {% if c.user %}
+                    {{ c.user.username }}
+                  {% else %}
+                    Anônimo
+                  {% endif %}
+                </div>
+                <div><strong>Valor:</strong> R$ {{ c.valor }} • <strong>TXID:</strong> {{ c.txid }}</div>
+                <div class="text-muted"><small>Criado em {{ c.data_criacao }}</small></div>
+              </div>
+
+              <form method="post" action="{% url 'servico_confirmar_pagamento' c.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-contratar">Confirmar pagamento</button>
+              </form>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">Nenhum pagamento pendente.</p>
+    {% endif %}
+  {% endwith %}
+{% endif %}
+    
   </div>
 </div>
 {% endblock %}

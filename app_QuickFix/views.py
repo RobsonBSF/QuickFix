@@ -6,6 +6,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import DirectThread, DirectMessage, CustomUser
 from uuid import UUID
 
+from django.http import HttpResponseForbidden
+from django.utils.timezone import now
+from django.views.decorators.http import require_POST
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
@@ -16,6 +20,7 @@ from django.db.models import Q, Avg, Count
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from decimal import Decimal
 
 from .models import (
     Servico, Servico_favoritos, Servico_visualizacao, Servico_contratado,
@@ -121,6 +126,7 @@ def build_pix_br_code(chave: str, nome: str, cidade: str, valor: Decimal, txid: 
 # ---------------------------
 # Checkout PIX
 # ---------------------------
+
 @login_required
 def servico_checkout_pix(request, servico_id):
     servico = get_object_or_404(Servico, id=servico_id)
@@ -130,11 +136,17 @@ def servico_checkout_pix(request, servico_id):
         return redirect('servico_detalhe', id=servico.id)
 
     txid = f"QF{str(servico.id)[:10]}"
+
+    # força mínimo de 0.01
+    valor = servico.preco or Decimal("0.00")
+    if valor < Decimal("0.01"):
+        valor = Decimal("0.01")
+
     brcode = build_pix_br_code(
         chave=getattr(settings, "PIX_KEY", ""),
         nome=getattr(settings, "PIX_MERCHANT_NAME", "QUICKFIX"),
         cidade=getattr(settings, "PIX_MERCHANT_CITY", "CAMPINAS"),
-        valor=servico.preco or Decimal("0.00"),
+        valor=valor,
         txid=txid,
     )
     ctx = {
@@ -146,47 +158,122 @@ def servico_checkout_pix(request, servico_id):
         "confirm_url": reverse("servico_checkout_confirm", kwargs={"servico_id": servico.id}),
     }
     return render(request, "area_usuario/checkout_pix.html", ctx)
-
 @login_required
 @require_http_methods(["POST"])
 def servico_checkout_confirm(request, servico_id):
     servico = get_object_or_404(Servico, id=servico_id)
 
+    # comprador não pode ser o próprio dono
     if servico.user_id == request.user.id:
         messages.error(request, "Você não pode contratar o seu próprio serviço.")
         return redirect('servico_detalhe', id=servico.id)
 
     txid = request.POST.get("txid") or f"QF{str(servico.id)[:10]}"
 
-    Servico_contratado.objects.create(
-        user=request.user,
+    # Cria contratação como PENDENTE (aguardando confirmação do dono)
+    contrato, _created = Servico_contratado.objects.get_or_create(
+        user=request.user,       # <- comprador
         servico=servico,
-        valor=servico.preco,
         txid=txid,
-        status="CONFIRMADO",
+        defaults={
+            "valor": servico.preco,
+            "status": "PENDENTE",
+        }
     )
 
+    messages.success(
+        request,
+        "Pedido registrado! Aguarde o criador do anúncio confirmar o pagamento."
+    )
+    return redirect("servico_detalhe", id=servico.id)
+
+
+from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
+
+@login_required
+@require_http_methods(["POST"])
+def servico_confirmar_pagamento(request, contrato_id):
+    contrato = get_object_or_404(Servico_contratado, id=contrato_id)
+    servico = contrato.servico
+
+    # Só o dono do anúncio pode confirmar
+    if request.user.id != servico.user_id:
+        messages.error(request, "Apenas o criador do anúncio pode confirmar o pagamento.")
+        return redirect("servico_detalhe", id=servico.id)
+
+    if contrato.status != "PENDENTE":
+        messages.info(request, "Este contrato não está pendente.")
+        return redirect("servico_detalhe", id=servico.id)
+
+    contrato.status = "CONFIRMADO"
+    contrato.save()
+
+    # E-mails (se houverem)
     try:
-        if request.user.email:
+        if contrato.user and contrato.user.email:
             send_mail(
-                f"Confirmação de compra - {servico.titulo}",
-                f"Olá, {request.user.username}!\nPagamento via PIX confirmado.\nValor: R$ {servico.preco:.2f}",
-                None, [request.user.email], fail_silently=True,
+                f"Pagamento confirmado - {servico.titulo}",
+                f"Olá, {contrato.user.username}!\nSeu pagamento foi confirmado.\nValor: R$ {contrato.valor:.2f}\nTXID: {contrato.txid}",
+                None, [contrato.user.email], fail_silently=True,
             )
         if servico.user and servico.user.email:
             send_mail(
-                f"Seu serviço foi contratado - {servico.titulo}",
-                f"{request.user.username} contratou seu serviço.",
+                f"Você confirmou um pagamento - {servico.titulo}",
+                f"Pagamento confirmado para o comprador {contrato.user.username if contrato.user else 'Usuário'}.\nValor: R$ {contrato.valor:.2f}\nTXID: {contrato.txid}",
                 None, [servico.user.email], fail_silently=True,
             )
     except Exception:
         pass
 
-    messages.success(request, "Pagamento confirmado! Enviamos um e-mail para você.")
+    messages.success(request, "Pagamento confirmado com sucesso!")
     return redirect("servico_detalhe", id=servico.id)
 
 
+@login_required
+@require_http_methods(["POST"])
+def servico_confirmar_recebimento(request, contratado_id):
+    contratado = get_object_or_404(Servico_contratado, id=contratado_id)
 
+    # Regra de autorização: só o dono do post pode confirmar
+    if request.user.id != contratado.servico.user_id:
+        messages.error(request, "Você não tem permissão para confirmar este pagamento.")
+        return redirect("servico_detalhe", id=contratado.servico.id)
+
+    if contratado.status != "CONFIRMADO":
+        contratado.status = "CONFIRMADO"
+        contratado.save()
+
+        # E-mails ao comprador e ao dono (opcional)
+        try:
+            if contratado.user and contratado.user.email:
+                send_mail(
+                    f"Pagamento confirmado - {contratado.servico.titulo}",
+                    (
+                        f"Olá, {contratado.user.username}!\n"
+                        f"Pagamento confirmado pelo profissional.\n"
+                        f"Valor: R$ {contratado.valor:.2f} | TXID: {contratado.txid}"
+                    ),
+                    None, [contratado.user.email], fail_silently=True,
+                )
+            if contratado.servico.user and contratado.servico.user.email:
+                send_mail(
+                    f"Você confirmou um pagamento - {contratado.servico.titulo}",
+                    (
+                        f"Confirmação realizada com sucesso.\n"
+                        f"Cliente: {contratado.user.username if contratado.user else '—'}\n"
+                        f"Valor: R$ {contratado.valor:.2f} | TXID: {contratado.txid}"
+                    ),
+                    None, [contratado.servico.user.email], fail_silently=True,
+                )
+        except Exception:
+            pass
+
+        messages.success(request, "Pagamento confirmado com sucesso.")
+    else:
+        messages.info(request, "Este pagamento já está confirmado.")
+
+    return redirect("servico_detalhe", id=contratado.servico.id)
 
 # -------------------------------------------------
 # Filtros e buscas
@@ -416,12 +503,16 @@ def servico_detalhe(request, id):
         ip_address=request.META.get("REMOTE_ADDR")
     )
 
+    pendentes = []
+    if user and user.id == criador_id:
+        pendentes = servico.contratados.filter(status="PENDENTE").select_related("user")
+
     return render(request, 'servico_detalhe.html', {
         'servico': servico,
         'criador_id': criador_id,
         'pode_conversar': pode_conversar,
+        'pendentes': pendentes,   # <- novo
     })
-
 @login_required(login_url='login')
 def cadastro_de_servico(request):
     if request.method == 'POST':
@@ -480,19 +571,67 @@ def send_servico(request, user, servico=None):
 def cadastro(request):
     if request.method == 'POST':
         username = request.POST.get('username')
+        email = request.POST.get('email')
         password = request.POST.get('senha')
+        senha_conf = request.POST.get('senha_confirmada')
 
-        if password != request.POST.get('senha_confirmada'):
-            return render(request, Area_login+'register.html', {'form_err': 'As senhas não coincidem.'})
+        if not username or not email or not password:
+            return render(request, Area_login + 'register.html', {'form_err': 'Todos os campos (usuário, email e senha) são obrigatórios.'})
+
+        if password != senha_conf:
+            return render(request, Area_login + 'register.html', {'form_err': 'As senhas não coincidem.'})
 
         if CustomUser.objects.filter(username=username).exists():
-            return render(request, Area_login+'register.html', {'form_err': 'Usuário já existe.'})
+            return render(request, Area_login + 'register.html', {'form_err': 'Usuário já existe.'})
 
-        user = CustomUser.objects.create_user(username=username, password=password)
-        user.save()
+        # se quiser checar email duplicado (opcional)
+        if CustomUser.objects.filter(email=email).exists():
+            return render(request, Area_login + 'register.html', {'form_err': 'Email já cadastrado.'})
+
+        user = CustomUser.objects.create_user(username=username, email=email, password=password)
+        # você pode opcionalmente enviar um email de boas-vindas aqui
         return redirect('login')
 
     return render(request, Area_login+'register.html')
+
+@require_POST
+@login_required
+def servico_checkout_mark_paid(request, servico_id):
+    servico = get_object_or_404(Servico, id=servico_id)
+
+    # Impede o dono de “se contratar”
+    if servico.user_id == request.user.id:
+        messages.error(request, "Você não pode marcar pagamento do seu próprio serviço.")
+        return redirect('servico_detalhe', id=servico.id)
+
+    txid = request.POST.get("txid") or f"QF{str(servico.id)[:10]}"
+
+    # Cria/garante um registro PENDENTE para este cliente+serviço+txid
+    contrato, created = Servico_contratado.objects.get_or_create(
+        user=request.user,
+        servico=servico,
+        txid=txid,
+        defaults={"valor": servico.preco, "status": "PENDENTE"},
+    )
+    if not created and contrato.status != "PENDENTE":
+        contrato.status = "PENDENTE"
+        contrato.valor = servico.preco
+        contrato.save()
+
+    # Notifica o dono do serviço que há pagamento a confirmar
+    try:
+        if servico.user and servico.user.email:
+            send_mail(
+                f"[QuickFix] Pagamento marcado - {servico.titulo}",
+                f"O cliente {request.user.username} marcou pagamento (TXID {txid}). "
+                f"Acesse o painel para confirmar.",
+                None, [servico.user.email], fail_silently=True,
+            )
+    except Exception:
+        pass
+
+    messages.success(request, "Pagamento marcado! O profissional irá confirmar em breve.")
+    return redirect("servico_detalhe", id=servico.id)
 
 def login_view(request):
     if request.method == 'POST':

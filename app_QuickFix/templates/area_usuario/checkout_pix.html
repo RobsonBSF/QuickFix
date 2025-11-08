@@ -37,7 +37,7 @@
           {% csrf_token %}
           <input type="hidden" name="txid" value="{{ txid }}">
           <button type="submit" class="btn btn-warning w-100">
-            Já paguei (confirmar)
+              Confirmar pagamento
           </button>
         </form>
 
@@ -47,20 +47,20 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-J7e1Qv7n4qv9f3FqQJb5QmA3t8J9o2S8n8kz8s2mta7mV8WZ3mXQ3j1o9j8p9m1T2n9cQWcYB9o1g6pS9qYQ9A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-  // Gera QR Code a partir do BR Code PIX
-  new QRCode(document.getElementById("qrcode"), {
-    text: "{{ pix_brcode|escapejs }}",
-    width: 240,
-    height: 240
-  });
+  document.addEventListener('DOMContentLoaded', function () {
+    new QRCode(document.getElementById("qrcode"), {
+      text: "{{ pix_brcode|escapejs }}",
+      width: 240,
+      height: 240
+    });
 
-  // Copiar copia-e-cola
-  document.getElementById("btnCopy").addEventListener("click", function() {
-    const txt = document.getElementById("ccode").innerText;
-    navigator.clipboard.writeText(txt).then(function(){
-      alert("Código PIX copiado!");
+    document.getElementById("btnCopy").addEventListener("click", function() {
+      const txt = document.getElementById("ccode").innerText;
+      navigator.clipboard.writeText(txt).then(function(){
+        alert("Código PIX copiado!");
+      });
     });
   });
 </script>

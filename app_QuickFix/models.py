@@ -7,30 +7,35 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 
+
+
 # ----------------------------
 # Usuário
 # ----------------------------
 class CustomUserManager(BaseUserManager):
-    def create_user(self, username, password=None, **extra_fields):
+    def create_user(self, username, email, password=None, **extra_fields):
         if not username:
             raise ValueError("O campo 'username' é obrigatório.")
-        user = self.model(username=username, **extra_fields)
+        if not email:
+            raise ValueError("O campo 'email' é obrigatório.")
+        email = self.normalize_email(email)
+        user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, username, password=None, **extra_fields):
+    def create_superuser(self, username, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         if not password:
             raise ValueError("Superusuário requer senha.")
-        return self.create_user(username, password, **extra_fields)
-
+        return self.create_user(username, email, password, **extra_fields)
+    
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=150, unique=True)
     nome = models.CharField(max_length=150, blank=True, default="")
-    email = models.EmailField(blank=True, null=True)
+    email = models.EmailField(blank=False, null=False)
 
     profile_image = models.ImageField(upload_to='perfil', blank=True, null=True)
 
@@ -40,7 +45,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = []
+   
+    REQUIRED_FIELDS = ['email'] 
 
     objects = CustomUserManager()
 
@@ -180,7 +186,7 @@ class Servico_contratado(models.Model):
         ('CONFIRMADO', 'Confirmado'),
         ('CANCELADO', 'Cancelado'),
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='CONFIRMADO')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDENTE')
 
     data_criacao = models.DateTimeField(auto_now_add=True)
 
