@@ -74,7 +74,7 @@ def perfil(request):
         return redirect('perfil')
 
     # usa o template correto:
-    return render(request, 'area_usuario/perfil.html', {
+    return render(request, 'login/perfil.html', {
         'pagina': {'intro': False}
     })
 
