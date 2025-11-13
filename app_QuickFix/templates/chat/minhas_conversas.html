@@ -62,8 +62,8 @@
     <!-- Conversas Recebidas -->
     <h4 class="section-title"> Recebidas</h4>
     <div class="row g-4">
-      {% if recebidas %}
-        {% for c in recebidas %}
+      {% if iniciadas %}
+        {% for c in iniciadas %}
           <div class="col-md-4">
             <div class="card-conversa">
               <h5 class="card-title">{{ c.other.username }}</h5>
@@ -86,8 +86,8 @@
     <!-- Conversas Iniciadas -->
     <h4 class="section-title"> Iniciadas</h4>
     <div class="row g-4">
-      {% if iniciadas %}
-        {% for c in iniciadas %}
+      {% if recebidas %}
+        {% for c in recebidas %}
           <div class="col-md-4">
             <div class="card-conversa">
               <h5 class="card-title">{{ c.other.username }}</h5>

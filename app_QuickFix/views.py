@@ -677,10 +677,11 @@ def forgot_password(request):
 def direct_chat(request, user_id):
     other = get_object_or_404(CustomUser, id=user_id)
 
-    # normaliza para evitar duplicata (A,B == B,A)
-    thread = DirectThread.objects.filter(
-        Q(user1=request.user, user2=other) | Q(user1=other, user2=request.user)
-    ).first()
+    thread = DirectThread.objects.filter(user1=request.user, user2=other).first()
+
+    if not thread:
+        thread = DirectThread.objects.filter(user1=other, user2=request.user).first()
+
     if not thread:
         thread = DirectThread.get_or_create_thread(request.user, other)
 
@@ -700,28 +701,30 @@ def direct_chat(request, user_id):
 @login_required
 def minhas_conversas(request):
     user = request.user
-    # Quem iniciou a conversa (user1 = usuário logado)
+
+    # user1 = quem iniciou a conversa
     iniciadas = DirectThread.objects.filter(user1=user)
-    # Quem recebeu a conversa (user2 = usuário logado)
+    # user2 = quem recebeu a conversa
     recebidas = DirectThread.objects.filter(user2=user)
 
     lista_recebidas = [{
         "thread": t,
-        "other": t.user1,  # remetente
+        "other": t.user1,
         "last_message": t.messages.last()
-    } for t in recebidas]
+    } for t in recebidas if t.user1 != user]
 
     lista_iniciadas = [{
         "thread": t,
-        "other": t.user2,  # destinatário
+        "other": t.user2,
         "last_message": t.messages.last()
-    } for t in iniciadas]
+    } for t in iniciadas if t.user2 != user]
 
     return render(request, "chat/minhas_conversas.html", {
         "recebidas": lista_recebidas,
         "iniciadas": lista_iniciadas,
         "pagina": {"code": "minhas_conversas", "name": "Minhas Conversas"},
     })
+
 
 @login_required
 def favoritar(request):
