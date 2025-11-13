@@ -18,9 +18,9 @@ env/
 .venv/
 
 # Arquivos de mídia e estáticos coletados
-#/media
-#/staticfiles
-#/static_root/
+/media
+/staticfiles
+/static_root/
 
 # Logs
 *.log
